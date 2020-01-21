@@ -100,8 +100,11 @@ class MyEventHandler( EventHandler ):
         if FuncEnable['WriteFile']:
             #print "WriteFile: Filename: %s, Handle:%08d, lpBuffer:%016x, nNumberOfBytesToWrite:%-d, offset:%d"%(self.file_map[hFile]['file_name'],hFile, lpBuffer, nNumberOfBytesToWrite,self.file_map[hFile]['offset'])
             try:
+                raw_input("WriteFile->Filename: %s"%self.file_map[hFile]['file_name'])
+                jud = event.get_process().peek_string(lpBuffer,dwMaxSize=nNumberOfBytesToWrite).encode("ascii")
                 logging.debug("WriteFile->Filename: %s,WriteLength:%-d, Content:%s "%(self.file_map[hFile]['file_name'], nNumberOfBytesToWrite, event.get_process().peek_string(lpBuffer,dwMaxSize=nNumberOfBytesToWrite)))
             except:
+                '''
                 try:
                     logging.debug("WriteFile->Filename: %s,WriteLength:%-d, Content:%s "%(self.file_map[hFile]['file_name'], nNumberOfBytesToWrite, event.get_process().peek_string(lpBuffer,fUnicode=True,dwMaxSize=nNumberOfBytesToWrite)))
                 except:
@@ -109,6 +112,11 @@ class MyEventHandler( EventHandler ):
                         logging.debug("WriteFile->Filename: %s,WriteLength:%-d, Content:%s "%(self.file_map[hFile]['file_name'], nNumberOfBytesToWrite, self.__print__hex(event, lpBuffer,nNumberOfBytesToWrite)))
                     except:
                         logging.debug("WriteFile Error! Invilid Handle:%d"%hFile)
+                '''
+                try:
+                    logging.debug("WriteFile->Filename: %s,WriteLength:%-d, Content:%s "%(self.file_map[hFile]['file_name'], nNumberOfBytesToWrite, self.__print__hex(event, lpBuffer,nNumberOfBytesToWrite)))
+                except:
+                    logging.debug("WriteFile Error! Invilid Handle:%d"%hFile)    
             #print event.get_process().peek_string(lpBuffer,dwMaxSize=nNumberOfBytesToWrite)
             #print "\n\n"
             self.file_map[hFile]['offset'] += nNumberOfBytesToWrite
