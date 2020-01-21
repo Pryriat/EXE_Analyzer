@@ -1,12 +1,13 @@
 #coding:utf-8
 from winappdbg.win32 import *
 from winappdbg import *
+from Hooking import *
 import sys
 import logging
 import ctypes
 from Queue import Queue
 LOG_FORMAT = "%(asctime)s - %(message)s"
-logging.basicConfig(filename=r'C:\Users\hjc\Desktop\my.log',filemode='w',level=logging.DEBUG, format=LOG_FORMAT)
+logging.basicConfig(filename=r'my.log',filemode='w',level=logging.DEBUG, format=LOG_FORMAT)
 '''
 Notification name	What does it mean?	                                    When is it received?
 create_process	    The debugger has attached to a new process.	            When attaching to a process, when starting a new process for debugging, or when the debugee starts a new process and the bFollow flag was set to True.
@@ -34,6 +35,7 @@ class MyEventHandler( EventHandler ):
     ReadFile_Queue = Queue()
     WriteFile_Queue = Queue()
     MoveFileA_Queue = Queue()
+    MoveFileW_Queue = Queue()
 
     #ProcessMultiThreadsTmp
     CreateProcessA_Queue = Queue()
@@ -53,35 +55,27 @@ class MyEventHandler( EventHandler ):
              dwShareMode, lpSecurityAttributes, dwCreationDisposition,
                                 dwFlagsAndAttributes, hTemplateFile ):
         if FuncEnable['CreateFileA']:
-            if len(self.tmp)>0:
-                print "Tmp not Init! %s"%self.tmp
             file_name = event.get_process().peek_string(lpFileName)
             logging.debug("CreateFile->FileName:%s"%file_name)
-            #self.__print_opening_unicode( event, "CreateFileW", lpFileName )
             self.CreateFileA_Queue.put(file_name, timeout=1)
-            #self.tmp = file_name
     def post_CreateFileA(self,event,retval):
         if FuncEnable['CreateFileA']:
             try:
-                #self.file_map[int(retval)] = {'file_name':self.tmp,'offset':0,'ReadBuffer':0,'ReadLength':0}
                 if not self.CreateFileA_Queue.empty():
                     self.file_map[int(retval)] = {'file_name':self.CreateFileA_Queue.get(),'offset':0,'ReadBuffer':0,'ReadLength':0}
                     self.CreateFileA_Queue.task_done()
                 else:
                     logging.debug("CreateFileA Error! No Handle!")
             except:
-                print "Bind CreateFileError, tmp = %s, retval = %d"%(tmp,retval)
+                print "Bind CreateFileError, retval = %d"%(retval)
     
     #CreateFileW
     def pre_CreateFileW( self, event, ra, lpFileName, dwDesiredAccess,
              dwShareMode, lpSecurityAttributes, dwCreationDisposition,
                                 dwFlagsAndAttributes, hTemplateFile ):
         if FuncEnable['CreateFileW']:
-            if len(self.tmp)>0:
-                print "Tmp not Init! %s"%self.tmp
             file_name = event.get_process().peek_string(lpFileName, fUnicode = True )
             logging.debug("CreateFile->FileName:%s"%file_name)
-            #self.__print_opening_unicode( event, "CreateFileW", lpFileName )
             self.CreateFileW_Queue.put(file_name)
     def post_CreateFileW(self,event,retval):
         if FuncEnable['CreateFileW']:
@@ -92,7 +86,7 @@ class MyEventHandler( EventHandler ):
                 else:
                     logging.debug("CreateFileW Error! No Handle!")
             except:
-                print "Bind CreateFileError, tmp = %s, retval = %d"%(tmp,retval)
+                print "Bind CreateFileError, retval = %d"%(retval)
     
     #WriteFile
     def pre_WriteFile( self, event, ra, hFile, lpBuffer,
@@ -100,7 +94,7 @@ class MyEventHandler( EventHandler ):
         if FuncEnable['WriteFile']:
             #print "WriteFile: Filename: %s, Handle:%08d, lpBuffer:%016x, nNumberOfBytesToWrite:%-d, offset:%d"%(self.file_map[hFile]['file_name'],hFile, lpBuffer, nNumberOfBytesToWrite,self.file_map[hFile]['offset'])
             try:
-                raw_input("WriteFile->Filename: %s"%self.file_map[hFile]['file_name'])
+                #raw_input("WriteFile->Filename: %s"%self.file_map[hFile]['file_name'])
                 jud = event.get_process().peek_string(lpBuffer,dwMaxSize=nNumberOfBytesToWrite).encode("ascii")
                 logging.debug("WriteFile->Filename: %s,WriteLength:%-d, Content:%s "%(self.file_map[hFile]['file_name'], nNumberOfBytesToWrite, event.get_process().peek_string(lpBuffer,dwMaxSize=nNumberOfBytesToWrite)))
             except:
@@ -166,10 +160,10 @@ class MyEventHandler( EventHandler ):
     
     #MoveFileW
     def pre_MoveFileW(self, event, ra, lpExistingFileName, lpNewFileName):
-        if FuncEnable['MoveFileA']:
+        if FuncEnable['MoveFileW']:
             proc = event.get_process()
             self.MoveFileW_Queue.put([proc.peek_string(lpExistingFileName,fUnicode=True), proc.peek_string(lpNewFileName,fUnicode=True)])
-    def post_MoveFileA(self,event, retval):
+    def post_MoveFileW(self,event, retval):
         if FuncEnable['MoveFileW']:
             try:
                 if not self.MoveFileW_Queue.empty():
@@ -256,7 +250,7 @@ class MyEventHandler( EventHandler ):
     #WriteProcessMemory
     def pre_WriteProcessMemory(self, event, ra, hProcess, lpBaseAddress, lpBuffer, nSize, lpNumberOfBytesWritten):
         if FuncEnable['WriteProcessMemory']:
-            logging.debug("WriteProcessMemory->Handle:%s, BaseAddress:%s,  Content:%s"%(hProcess, hex(int(lpBaseAddress), self.__print__hex(event, lpBuffer, nSize))))
+            logging.debug("WriteProcessMemory->Handle:%s, BaseAddress:%s, Content:%s"%(hProcess, hex(int(lpBaseAddress), self.__print__hex(event, lpBuffer, nSize))))
     def post_WriteProcessMemory(self, event, retval):
         pass
     
@@ -317,25 +311,5 @@ class MyEventHandler( EventHandler ):
     def uint(self, num):
         return int(num)&0xffffffff
     
-
-def simple_debugger(argv):
-
-    # Instance a Debug object, passing it the event handler callback.
-    #with Debug( MyEventHandler(), bKillOnExit = True ) as debug:
-    with Debug( MyEventHandler(), bKillOnExit = True) as debug:
-        try:
-
-        # Start a new process for debugging.
-            #debug.execv([b"C:/Users/hjc/Desktop/telegram/Telegram.exe"], bBreakOnEntryPoint=True)
-            debug.execv(argv[0], bBreakOnEntryPoint=True)
-
-        # Wait for the debugee to finish.
-            debug.loop()
-        except:
-            print sys.exc_info()[1]
-
-    # Stop the debugger.
-        finally:
-            debug.stop()
 
 
