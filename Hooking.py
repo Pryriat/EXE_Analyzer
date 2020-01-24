@@ -20,6 +20,19 @@ apihooking = {
             ( 'WriteProcessMemory', (HANDLE, PVOID, PVOID, DWORD, DWORD)),
             ( 'WinExec'         , (PVOID, DWORD)),
             ( 'CreateRemoteThread' , (HANDLE, PVOID, DWORD, PVOID, PVOID, DWORD, PVOID))
+        ],
+        'advapi32.dll' : [
+            # Function            Parameters
+            ( 'RegOpenKeyA'     , (HANDLE, PVOID, PVOID) ),
+            ( 'RegOpenKeyW'     , (HANDLE, PVOID, PVOID) ),
+            ( 'RegCreateKeyA'   , (HANDLE, PVOID, PVOID) ),
+            ( 'RegCreateKeyW'   , (HANDLE, PVOID, PVOID) ),
+            ( 'RegDeleteKeyA'   , (HANDLE, PVOID) ),
+            ( 'RegDeleteKeyW'   , (HANDLE, PVOID) ),
+            ( 'RegGetValueA'    , (HANDLE, PVOID, PVOID, DWORD, PVOID, PVOID, PVOID) ),
+            ( 'RegGetValueW'    , (HANDLE, PVOID, PVOID, DWORD, PVOID, PVOID, PVOID) ),
+            ( 'RegLoadKeyA'     , (HANDLE, PVOID, PVOID) ),
+            ( 'RegLoadKeyW'     , (HANDLE, PVOID, PVOID) )
         ]
     }
 
@@ -40,5 +53,19 @@ FuncEnable = {
     'OpenProcess'            :True,
     'WriteProcessMemory'     :True,
     'WinExec'                :True,
-    'CreateRemoteThread'     :True
+    'CreateRemoteThread'     :True,
+    
+    #advapi32.dll
+    'RegOpenKeyA'            :True,
+    'RegOpenKeyW'            :True,
+    'RegCreateKeyA'          :True,
+    'RegCreateKeyW'          :True,
+    'RegDeleteKeyA'          :True,
+    'RegDeleteKeyW'          :True,
+    'RegDeleteValueA'        :True,
+    'RegDeleteValueW'        :True,
+    'RegGetValueA'           :True,
+    'RegGetValueW'           :True,
+    'RegLoadKeyA'            :True,
+    'RegLoadKeyW'            :True
 }
