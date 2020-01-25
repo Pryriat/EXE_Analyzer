@@ -30,10 +30,10 @@
 2020-01-24 18:19:00,341 - Load:C:\WINDOWS\system32\apphelp.dll
 2020-01-24 18:19:00,341 - CreateFile->FileName:00000000.res
 2020-01-24 18:19:00,371 - CreateProcess->Handle:, CommandLine:cmd.exe /c start /b @WanaDecryptor@.exe vs
-2020-01-24 18:19:00,388 - CreateFile->FileName:C:\Users\hjc\AppData\Local\Temp\hibsys.WNCRYT
+2020-01-24 18:19:00,388 - CreateFile->FileName:C:\Users\xxx\AppData\Local\Temp\hibsys.WNCRYT
 2020-01-24 18:19:16,200 - CreateFile->FileName:00000000.res
 2020-01-24 18:19:28,740 - CreateProcess->Handle:, CommandLine:taskdl.exe
-2020-01-24 18:19:29,223 - CreateProcess->Handle:, CommandLine:taskse.exe C:\Users\hjc\Desktop\@WanaDecryptor@.exe
+2020-01-24 18:19:29,223 - CreateProcess->Handle:, CommandLine:taskse.exe C:\Users\xxx\Desktop\@WanaDecryptor@.exe
 2020-01-24 18:19:29,239 - CreateProcess->Handle:, CommandLine:@WanaDecryptor@.exe
 2020-01-24 18:19:29,239 - CreateProcess->Handle:, CommandLine:cmd.exe /c reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run /v "yifyuubai741" /t REG_SZ /d "\"C:\Users\xxx\Desktop\tasksche.exe\"" /f
 2020-01-24 18:19:41,645 - CreateFile->FileName:00000000.res
