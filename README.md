@@ -5,7 +5,7 @@
 - [x] 反调试（\*仅针对IsDebuggerPresent)
 - [x] 文件类API调用跟踪
 - [x] 进程类API调用跟踪
-- [ ] 网络类API调用跟踪
+- [x] 网络类API调用跟踪
 - [x] 注册表类API调用跟踪
 - [ ] 杂项API调用跟踪
 - [ ] 基于PyQt5的GUI
