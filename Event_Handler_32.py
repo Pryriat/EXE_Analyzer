@@ -1,6 +1,10 @@
 #coding:utf-8
 from winappdbg.win32 import *
 from winappdbg import *
+from HookedApis.WininetApi import *
+from HookedApis.WinRegApi import *
+from HookedApis.ProcessApi import *
+from HookedApis.FileApi import *
 from Hooking import *
 import sys
 import logging
@@ -25,33 +29,6 @@ single_step	        A single step exception was raised by the debugee.	    When 
 guard_page       	A guard page exception was raised by the debugee.	    When a guard page is hit or when a page breakpoint set by your program is triggered.
 '''
 class MyEventHandler( EventHandler ):
-    file_map = {}
-    internet_map={}
-    tmp = ''
-    tmp_handle = 0
-    
-    #FileMultiThreadsTmp
-    CreateFileA_Queue = Queue()
-    CreateFileW_Queue = Queue()
-    ReadFile_Queue = Queue()
-    WriteFile_Queue = Queue()
-    MoveFileA_Queue = Queue()
-    MoveFileW_Queue = Queue()
-    MoveFileExA_Queue = Queue()
-    MoveFileExW_Queue = Queue()
-
-    #ProcessMultiThreadsTmp
-    CreateProcessA_Queue = Queue()
-    CreateProcessW_Queue = Queue()
-    CreateThread_Queue = Queue()
-    OpenProcess_Queue = Queue()
-    CreateRemoteThread_Queue = Queue()
-    CreateRemoteThreadEx_Queue = Queue()
-
-    #WininetMultiThreadsTmp
-    InternetConnectA_Queue = Queue()
-    InternetConnectW_Queue = Queue()
-
 
     apiHooks = apihooking
 
@@ -60,636 +37,336 @@ class MyEventHandler( EventHandler ):
  
 #FileApis
     #CreateFileA
-    def pre_CreateFileA( self, event, ra, lpFileName, dwDesiredAccess,
-             dwShareMode, lpSecurityAttributes, dwCreationDisposition,
-                                dwFlagsAndAttributes, hTemplateFile ):
-        if FuncEnable['CreateFileA']:
-            if len(self.tmp)>0:
-                print "Tmp not Init! %s"%self.tmp
-            file_name = event.get_process().peek_string(lpFileName)
-            logging.debug("CreateFile->FileName:%s"%file_name)
-            #self.__print_opening_unicode( event, "CreateFileW", lpFileName )
-            self.CreateFileA_Queue.put(file_name, timeout=1)
-            #self.tmp = file_name
+    def pre_CreateFileA(self, event, ra, lpFileName, dwDesiredAccess,
+        dwShareMode, lpSecurityAttributes, dwCreationDisposition,
+        dwFlagsAndAttributes, hTemplateFile):
+        MyPreCreateFileA(event, ra, lpFileName, dwDesiredAccess,
+        dwShareMode, lpSecurityAttributes, dwCreationDisposition,
+        dwFlagsAndAttributes, hTemplateFile)
     def post_CreateFileA(self,event,retval):
-        if FuncEnable['CreateFileA']:
-            try:
-                #self.file_map[int(retval)] = {'file_name':self.tmp,'offset':0,'ReadBuffer':0,'ReadLength':0}
-                if not self.CreateFileA_Queue.empty():
-                    self.file_map[int(retval)] = {'file_name':self.CreateFileA_Queue.get(),'offset':0,'ReadBuffer':0,'ReadLength':0}
-                    self.CreateFileA_Queue.task_done()
-                else:
-                    logging.debug("CreateFileA Error! No Handle!")
-            except:
-                print "Bind CreateFileError, tmp = %s, retval = %d"%(self.tmp,retval)
-    
+        MyPostCreateFileA(event,retval)
+
     #CreateFileW
-    def pre_CreateFileW( self, event, ra, lpFileName, dwDesiredAccess,
-             dwShareMode, lpSecurityAttributes, dwCreationDisposition,
-                                dwFlagsAndAttributes, hTemplateFile ):
-        if FuncEnable['CreateFileW']:
-            if len(self.tmp)>0:
-                print "Tmp not Init! %s"%self.tmp
-            file_name = event.get_process().peek_string(lpFileName, fUnicode = True )
-            logging.debug("CreateFile->FileName:%s"%file_name)
-            #self.__print_opening_unicode( event, "CreateFileW", lpFileName )
-            self.CreateFileW_Queue.put(file_name)
+    def pre_CreateFileW(self, event, ra, lpFileName, dwDesiredAccess,
+        dwShareMode, lpSecurityAttributes, dwCreationDisposition,
+        dwFlagsAndAttributes, hTemplateFile):
+        MyPreCreateFileW(event, ra, lpFileName, dwDesiredAccess,
+        dwShareMode, lpSecurityAttributes, dwCreationDisposition,
+        dwFlagsAndAttributes, hTemplateFile)
     def post_CreateFileW(self,event,retval):
-        if FuncEnable['CreateFileW']:
-            try:
-                if not self.CreateFileW_Queue.empty():
-                    self.file_map[int(retval)] = {'file_name':self.CreateFileW_Queue.get(),'offset':0,'ReadBuffer':0,'ReadLength':0}
-                    self.CreateFileW_Queue.task_done()
-                else:
-                    logging.debug("CreateFileW Error! No Handle!")
-            except:
-                print "Bind CreateFileError, tmp = %s, retval = %d"%(self.tmp,retval)
+        MyPostCreateFileW(event,retval)
     
     #WriteFile
-    def pre_WriteFile( self, event, ra, hFile, lpBuffer,
-             nNumberOfBytesToWrite, lpNumberOfBytesWritten, lpOverlapped):
-        if FuncEnable['WriteFile']:
-            #print "WriteFile: Filename: %s, Handle:%08d, lpBuffer:%016x, nNumberOfBytesToWrite:%-d, offset:%d"%(self.file_map[hFile]['file_name'],hFile, lpBuffer, nNumberOfBytesToWrite,self.file_map[hFile]['offset'])
-            try:
-                #raw_input("WriteFile->Filename: %s"%self.file_map[hFile]['file_name'])
-                jud = event.get_process().peek_string(lpBuffer,dwMaxSize=nNumberOfBytesToWrite).encode("ascii")
-                #logging.debug("WriteFile->Filename: %s,WriteLength:%-d, Content:%s "%(self.file_map[hFile]['file_name'], nNumberOfBytesToWrite, event.get_process().peek_string(lpBuffer,dwMaxSize=nNumberOfBytesToWrite)))
-                logging.debug("WriteFile->Filename: %s,WriteLength:%-d"%(self.file_map[hFile]['file_name'], nNumberOfBytesToWrite))
-            except:
-                '''
-                try:
-                    logging.debug("WriteFile->Filename: %s,WriteLength:%-d, Content:%s "%(self.file_map[hFile]['file_name'], nNumberOfBytesToWrite, event.get_process().peek_string(lpBuffer,fUnicode=True,dwMaxSize=nNumberOfBytesToWrite)))
-                except:
-                    try:
-                        logging.debug("WriteFile->Filename: %s,WriteLength:%-d, Content:%s "%(self.file_map[hFile]['file_name'], nNumberOfBytesToWrite, self.__print__hex(event, lpBuffer,nNumberOfBytesToWrite)))
-                    except:
-                        logging.debug("WriteFile Error! Invilid Handle:%d"%hFile)
-                '''
-                try:
-                    logging.debug("WriteFile->Filename: %s,WriteLength:%-d"%(self.file_map[hFile]['file_name'], nNumberOfBytesToWrite))
-                except:
-                    logging.debug("WriteFile Error! Invilid Handle:%s"%hFile)    
-            #print event.get_process().peek_string(lpBuffer,dwMaxSize=nNumberOfBytesToWrite)
-            #print "\n\n"
-            try:
-                self.file_map[hFile]['offset'] += nNumberOfBytesToWrite
-            except:
-                logging.debug("WriteFile Error! Invilid Handle:%s"%hFile) 
+    def pre_WriteFile(self, event, ra, hFile, lpBuffer,
+        nNumberOfBytesToWrite, lpNumberOfBytesWritten, lpOverlapped):
+        MyPreWriteFile(event, ra, hFile, lpBuffer,
+        nNumberOfBytesToWrite, lpNumberOfBytesWritten, lpOverlapped)
     def post_WriteFile(self,event,retval):
-        pass
+        MyPostWriteFile(event,retval)
     
     #ReadFile
-    def pre_ReadFile(self,event,ra,hFile,lpBuffer,nNumberOfBytesToRead,lpNumberOfBytesRead,lpOverlapped):
-        if FuncEnable['ReadFile']:
-            #print "ReadFile: Filename: %s, Handle:%08d, lpBuffer:%016x, nNumberOfBytesToRead:%d, offset:%d"%(self.file_map[hFile]['file_name'],hFile, lpBuffer, nNumberOfBytesToRead,self.file_map[hFile]['offset'])
-            #logging.debug("ReadFile: Filename: %s, Handle:%08d, lpBuffer:%016x, nNumberOfBytesToRead:%d, offset:%d"%(self.file_map[hFile]['file_name'],hFile, lpBuffer, nNumberOfBytesToRead,self.file_map[hFile]['offset']))
-            try:
-                self.file_map[hFile]['ReadBuffer'] = lpBuffer
-                self.file_map[hFile]['ReadLength'] = lpNumberOfBytesRead
-                self.file_map[hFile]['offset']+=nNumberOfBytesToRead
-            except:
-                logging.debug("Handle Error :%d"%hFile)
-            self.ReadFile_Queue.put(hFile,timeout = 1)
+    def pre_ReadFile(self, event, ra, hFile, lpBuffer, nNumberOfBytesToRead, 
+        lpNumberOfBytesRead, lpOverlapped):
+        MyPreReadFile(event, ra, hFile, lpBuffer, nNumberOfBytesToRead, 
+        lpNumberOfBytesRead, lpOverlapped)
     def post_ReadFile(self,event,retval):
-        if FuncEnable['ReadFile']:
-            try:
-                if not self.ReadFile_Queue.empty():
-                    tmp_handle = self.ReadFile_Queue.get()
-                    self.ReadFile_Queue.task_done()
-                    read_size = event.get_process().peek_int(self.file_map[tmp_handle]['ReadLength'])
-                    #print "Filename:%s, Readsize:%d, Buffer:%d"%(self.file_map[self.tmp_handle]['file_name'],read_size,self.file_map[self.tmp_handle]['ReadBuffer'])
-                    logging.debug("ReadFile->Filename:%s, Readsize:%d"%(self.file_map[tmp_handle]['file_name'],read_size))
-                else:
-                    logging.debug("ReadFile Error! No Handle!")
-            except:
-                logging.debug("ReadFile Error! Handle:%d"%tmp_handle)
+        MyPostReadFile(event,retval)
     
     #MoveFileA
     def pre_MoveFileA(self, event, ra, lpExistingFileName, lpNewFileName):
-        if FuncEnable['MoveFileA']:
-            proc = event.get_process()
-            self.MoveFileA_Queue.put([proc.peek_string(lpExistingFileName), proc.peek_string(lpNewFileName)])
+        MyPreMoveFileA(event, ra, lpExistingFileName, lpNewFileName)
     def post_MoveFileA(self,event, retval):
-        if FuncEnable['MoveFileA']:
-            try:
-                if not self.MoveFileA_Queue.empty():
-                        tmp = self.MoveFileA_Queue.get()
-                        self.MoveFileA_Queue.task_done()
-                        logging.debug("MoveFileA->From %s to %s, IsSucceed:%s"%(tmp[0], tmp[1], retval))
-            except:
-                logging.debug("MoveFileA Error!")
+        MyPostMoveFileA(event, retval)
     
     #MoveFileW
     def pre_MoveFileW(self, event, ra, lpExistingFileName, lpNewFileName):
-        if FuncEnable['MoveFileW']:
-            proc = event.get_process()
-            self.MoveFileW_Queue.put([proc.peek_string(lpExistingFileName,fUnicode=True), proc.peek_string(lpNewFileName,fUnicode=True)])
+        MyPreMoveFileW(event, ra, lpExistingFileName, lpNewFileName)
     def post_MoveFileW(self,event, retval):
-        if FuncEnable['MoveFileW']:
-            try:
-                if not self.MoveFileW_Queue.empty():
-                        tmp = self.MoveFileW_Queue.get()
-                        self.MoveFileW_Queue.task_done()
-                        logging.debug("MoveFileW->From %s to %s, IsSucceed:%s"%(tmp[0], tmp[1], retval))
-            except:
-                logging.debug("MoveFileW Error!")
+        MyPostMoveFileW(event, retval)
 
     #MoveFileExA
     def pre_MoveFileExA(self, event, ra, lpExistingFileName, lpNewFileName, dwFlags):
-        if FuncEnable['MoveFileExA']:
-            proc = event.get_process()
-            self.MoveFileExA_Queue.put([proc.peek_string(lpExistingFileName), proc.peek_string(lpNewFileName)])
+        MyPreMoveFileExA(event, ra, lpExistingFileName, lpNewFileName, dwFlags)
     def post_MoveFileExA(self,event, retval):
-        if FuncEnable['MoveFileExA']:
-            try:
-                if not self.MoveFileExA_Queue.empty():
-                        tmp = self.MoveFileExA_Queue.get()
-                        self.MoveFileExA_Queue.task_done()
-                        logging.debug("MoveFile->From %s to %s, IsSucceed:%s"%(tmp[0], tmp[1], retval))
-            except:
-                logging.debug("MoveFileExA Error!")
+        MyPostMoveFileExA(event, retval)
 
     #MoveFileExW
     def pre_MoveFileExW(self, event, ra, lpExistingFileName, lpNewFileName, dwFlags):
-        if FuncEnable['MoveFileExW']:
-            proc = event.get_process()
-            self.MoveFileExW_Queue.put([proc.peek_string(lpExistingFileName, fUnicode=True), proc.peek_string(lpNewFileName, fUnicode=True)])
+        MyPreMoveFileExW(event, ra, lpExistingFileName, lpNewFileName, dwFlags)
     def post_MoveFileExW(self,event, retval):
-        if FuncEnable['MoveFileExW']:
-            try:
-                if not self.MoveFileExW_Queue.empty():
-                        tmp = self.MoveFileExW_Queue.get()
-                        self.MoveFileExW_Queue.task_done()
-                        logging.debug("MoveFile->From %s to %s, IsSucceed:%s"%(tmp[0], tmp[1], retval))
-            except:
-                logging.debug("MoveFileExW Error!")
+        MyPostMoveFileExW(event, retval)
 
 #ProcessApis
     #CreateProcessA
     def pre_CreateProcessA(self, event, ra, lpApplicationName, lpCommandLine,
         lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags,
         lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation):
-        if FuncEnable['CreateProcessA']:
-            logging.debug("CreateProcess->Handle:%s, CommandLine:%s"%(event.get_process().peek_string(lpApplicationName), event.get_process().peek_string(lpCommandLine)))
+        MyPreCreateProcessA(event, ra, lpApplicationName, lpCommandLine,
+        lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags,
+        lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation)
     def post_CreateProcessA(self,event, retval):
-        pass
+        MyPostCreateProcessA(event, retval)
     
     #CreateProcessW   
     def pre_CreateProcessW(self, event, ra, lpApplicationName, lpCommandLine,
         lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags,
         lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation):
-        if FuncEnable['CreateProcessW']:
-            logging.debug("CreateProcess->Handle:%s, CommandLine:%s"%(event.get_process().peek_string(lpApplicationName,fUnicode = True), event.get_process().peek_string(lpCommandLine, fUnicode = True)))
+        MyPreCreateProcessW(event, ra, lpApplicationName, lpCommandLine,
+        lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags,
+        lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation)
     def post_CreateProcessW(self, event, retval):
-        pass
+        MyPostCreateProcessW(event, retval)
     
     #CreateThread
     def pre_CreateThread(self,event, ra, lpThreadAttributes, dwStackSize,
         lpStartAddress, lpParameter, dwCreationFlags, lpThreadId):
-        if FuncEnable['CreateThread']:
-            self.CreateThread_Queue.put({'StartAddress':hex(int(event.get_process().peek_uint(lpStartAddress))), 'Parameter': lpParameter})
+        MyPreCreateThread(event, ra, lpThreadAttributes, dwStackSize,
+        lpStartAddress, lpParameter, dwCreationFlags, lpThreadId)
     def post_CreateThread(self,event, retval):
-        if FuncEnable['CreateThread']:
-            if not self.CreateThread_Queue.empty():
-                da = self.CreateThread_Queue.get()
-                self.CreateThread_Queue.task_done()
-                da['Handle'] = retval
-                try:
-                    logging.debug('CreateThread->Handle:%s, StartAddress:%s, Parameter:%s'%(da['Handle'], da['StartAddress'], event.get_process().peek_string(da['Parameter'])))
-                except:
-                    try:
-                        logging.debug('CreateThread->Handle:%s, StartAddress:%s, Parameter:%s'%(da['Handle'], da['StartAddress'], event.get_process().peek_string(da['Parameter'],fUnicode = True)))
-                    except:
-                        try:
-                            logging.debug('CreateThread->Handle:%s, StartAddress:%s, Parameter:%s'%(da['Handle'], da['StartAddress'], self.__print__hex(event, da['Parameter'], 20)))
-                        except:
-                            logging.debug("CreateThread Parameter Error")
-            else:
-                logging.debug("CreateThread Failed!")
+        MyPostCreateThread(event, retval)
     
     #IsDebuggerPresent
     def pre_IsDebuggerPresent(self,event, ra):
-        if FuncEnable['IsDebuggerPresent']:
-            raw_input("Find Debugger")
+        MyPreIsDebuggerPresent(event, ra)
     def post_IsDebuggerPresent(self, event, retval):
-        if FuncEnable['IsDebuggerPresent']:
-            print retval
-            process = event.get_process()
-            process.suspend()
-            thread = event.get_thread()
-            thread.set_register("Eax",0)
-            raw_input(retval)
+        MyPostIsDebuggerPresent(event, retval)
     
     #OpenProcess
     def pre_OpenProcess(self, event, ra, dwDesiredAccess, bInheritHandle, dwProcessId):
-        if FuncEnable['OpenProcess']:
-            try:
-                self.OpenProcess_Queue.put([dwDesiredAccess, dwProcessId])
-            except:
-                logging.debug("OpenProcess Error!")
+        MyPreOpenProcess(event, ra, dwDesiredAccess, bInheritHandle, dwProcessId)
     def post_OpenProcess(self, event, retval):
-        if FuncEnable['OpenProcess']:
-            if not self.OpenProcess_Queue.empty():
-                try:
-                    tmp = self.OpenProcess_Queue.get()
-                    self.OpenProcess_Queue.task_done()
-                    logging.debug("OpenProcess->PID:%s  DesiredAccess:%s  ProcesHandle:%s"%(tmp[1], tmp[0], retval))
-                except:
-                    logging.debug("OpenProcess Error!")     
+        MyPostOpenProcess(event, retval) 
     
     #WriteProcessMemory
-    def pre_WriteProcessMemory(self, event, ra, hProcess, lpBaseAddress, lpBuffer, nSize, lpNumberOfBytesWritten):
-        if FuncEnable['WriteProcessMemory']:
-            logging.debug("WriteProcessMemory->Handle:%s, BaseAddress:%s,  Content:%s"%(hProcess, hex(int(lpBaseAddress)), self.__print__hex(event, lpBuffer, nSize)))
+    def pre_WriteProcessMemory(self, event, ra, hProcess, lpBaseAddress, lpBuffer, 
+    nSize, lpNumberOfBytesWritten):
+        MyPreWriteProcessMemory(event, ra, hProcess, lpBaseAddress, lpBuffer, 
+        nSize, lpNumberOfBytesWritten)
     def post_WriteProcessMemory(self, event, retval):
-        pass
+        MyPostWriteProcessMemory(event, retval)
     
     #WinExec
     def pre_WinExec(self, event, ra, lpCmdLine, uCmdShow):
-        if FuncEnable['WinExec']:
-            logging.debug("WinExec->CommandLine:%s, ShowOption:%s"%(lpCmdLine, uCmdShow))
+        MyPreWinExec(event, ra, lpCmdLine, uCmdShow)
     def post_WinExec(self, event, retval):
-        pass
+        MyPostWinExec(event, retval)
 
     #CreateRemoteThread
-    def pre_CreateRemoteThread(self, event, ra, hProcess, lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, lpThreadId):
-        self.CreateRemoteThread_Queue.put([hex(self.uint(hProcess)),hex(self.uint(event.get_process().peek_int(lpStartAddress))),lpParameter])
+    def pre_CreateRemoteThread(self, event, ra, hProcess, lpThreadAttributes, dwStackSize, 
+    lpStartAddress, lpParameter, dwCreationFlags, lpThreadId):
+        MyPreCreateRemoteThread(event, ra, hProcess, lpThreadAttributes, dwStackSize, 
+    lpStartAddress, lpParameter, dwCreationFlags, lpThreadId)
     def post_CreateRemoteThread(self, event, retval):
-        if FuncEnable['CreateRemoteThread']:
-            if not self.CreateRemoteThread_Queue.empty():
-                tmp = self.CreateRemoteThread_Queue.get()
-                self.CreateRemoteThread_Queue.task_done()
-                proc = event.get_process()
-                try:
-                    Parameter = proc.peek_string(tmp[2])
-                except:
-                    try:
-                        Parameter = proc.peek_string(tmp[2], fUnicode=True)
-                    except:
-                        logging.debug("CreateRemoteThread Error!")
-                        return retval
-                finally:
-                    logging.debug("CreateRemoteThread->Process:%s, StartAddress:%s, Parameter:%s, NewThreadHandle:%s"%(tmp[0], tmp[1], Parameter, retval))
+        MyPostCreateRemoteThread(event, retval)
 
     #CreateRemoteThreadEx
-    def pre_CreateRemoteThreadEx(self, event, ra, hProcess, lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, lpAttributeList, lpThreadId):
-        self.CreateRemoteThreadEx_Queue.put([hex(self.uint(hProcess)),hex(self.uint(event.get_process().peek_int(lpStartAddress))),lpParameter])
+    def pre_CreateRemoteThreadEx(self, event, ra, hProcess, lpThreadAttributes, dwStackSize, 
+    lpStartAddress, lpParameter, dwCreationFlags, lpAttributeList, lpThreadId):
+       MyPreCreateRemoteThreadEx(event, ra, hProcess, lpThreadAttributes, dwStackSize, 
+    lpStartAddress, lpParameter, dwCreationFlags, lpAttributeList, lpThreadId)
     def post_CreateRemoteThreadEx(self, event, retval):
-        if FuncEnable['CreateRemoteThreadEx']:
-            if not self.CreateRemoteThreadEx_Queue.empty():
-                tmp = self.CreateRemoteThreadEx_Queue.get()
-                self.CreateRemoteThreadEx_Queue.task_done()
-                proc = event.get_process()
-                try:
-                    Parameter = proc.peek_string(tmp[2])
-                except:
-                    try:
-                        Parameter = proc.peek_string(tmp[2], fUnicode=True)
-                    except:
-                        logging.debug("CreateRemoteThread Error!")
-                        return retval
-                finally:
-                    logging.debug("CreateRemoteThread->Process:%s, StartAddress:%s, Parameter:%s, NewThreadHandle:%s"%(tmp[0], tmp[1], Parameter, retval))
+        MyPostCreateRemoteThreadEx(event, retval)
 
 #WinRegApis
     #RegCreateKeyA
     def pre_RegCreateKeyA(self, event, ra, hKey, lpSubKey, phkResult):
-        if FuncEnable['RegCreateKeyA']:
-            try:
-                logging.debug("RegCreateKey->KeyHandle:%s, CreateKey:%s"%(self.uint(hKey), event.get_process().peek_string(lpSubKey)))
-            except:
-                logging.debug("RegCreateKeyError!")
+        MyPreRegCreateKeyA(event, ra, hKey, lpSubKey, phkResult)
     def post_RegCreateKeyA(self, event, retval):
-        pass
+        MyPostRegCreateKeyA(event, retval)
 
     #RegCreateKeyW
     def pre_RegCreateKeyW(self, event, ra, hKey, lpSubKey, phkResult):
-        if FuncEnable['RegCreateKeyW']:
-            try:
-                logging.debug("RegCreateKey->KeyHandle:%s, CreateKey:%s"%(self.uint(hKey), event.get_process().peek_string(lpSubKey,fUnicode=True)))
-            except:
-                logging.debug("RegCreateKeyError!")
+        MyPreRegCreateKeyW(event, ra, hKey, lpSubKey, phkResult)
     def post_RegCreateKeyW(self, event, retval):
-        pass
+        MyPostRegCreateKeyW(event, retval)
 
     #RegCreateKeyExA
-    def pre_RegCreateKeyExA(self, event, ra, hKey, lpSubKey, Reserved, lpClass, dwOptions, samDesired, lpSecurityAttributes, phkResult, lpdwDisposition):
-        if FuncEnable['RegCreateKeyExA']:
-            try:
-                logging.debug("RegCreateKeyEx->KeyHandle:%s, CreateKey:%s"%(self.uint(hKey), event.get_process().peek_string(lpSubKey)))
-            except:
-                logging.debug("RegCreateKeyError!")
+    def pre_RegCreateKeyExA(self, event, ra, hKey, lpSubKey, Reserved, 
+    lpClass, dwOptions, samDesired, lpSecurityAttributes, phkResult, lpdwDisposition):
+        MyPreRegCreateKeyExA(event, ra, hKey, lpSubKey, Reserved, lpClass,
+        dwOptions, samDesired, lpSecurityAttributes, phkResult, lpdwDisposition)
     def post_RegCreateKeyExA(self, event, retval):
-        pass
+        MyPostRegCreateKeyExA(event, retval)
     
     #RegCreateKeyExW
-    def pre_RegCreateKeyExW(self, event, ra, hKey, lpSubKey, Reserved, lpClass, dwOptions, samDesired, lpSecurityAttributes, phkResult, lpdwDisposition):
-        if FuncEnable['RegCreateKeyExW']:
-            try:
-                logging.debug("RegCreateKeyEx->KeyHandle:%s, CreateKey:%s"%(self.uint(hKey), event.get_process().peek_string(lpSubKey,fUnicode=True)))
-            except:
-                logging.debug("RegCreateKeyError!")
+    def pre_RegCreateKeyExW(self, event, ra, hKey, lpSubKey, Reserved, lpClass, 
+    dwOptions, samDesired, lpSecurityAttributes, phkResult, lpdwDisposition):
+        MyPreRegCreateKeyExW(event, ra, hKey, lpSubKey, Reserved, lpClass,
+        dwOptions, samDesired, lpSecurityAttributes, phkResult, lpdwDisposition)
     def post_RegCreateKeyExW(self, event, retval):
-        pass
+        MyPostRegCreateKeyExW(event, retval)
 
     #RegOpenKeyA
-    def pre_RegOpenKeyA(self, event, ra, hKey, lpSubKey, phkResult):
-        if FuncEnable['RegOpenKeyA']:
-            try:
-                logging.debug("RegOpenKey->KeyHandle:%s, OpenKey:%s"%(self.uint(hKey), event.get_process().peek_string(lpSubKey)))
-            except:
-                logging.debug("RegOpenKeyError!")
+    def pre_RegOpenKeyA(self, event, ra, hKey, 
+    lpSubKey, phkResult):
+        MyPreRegOpenKeyA(event, ra, hKey, lpSubKey, phkResult)
     def post_RegOpenKeyA(self, event, retval):
-        pass
+        MyPostRegOpenKeyA(event, retval)
 
     #RegOpenKeyExA
     def pre_RegOpenKeyExA(self, event, ra, hKey, lpSubKey, ulOptions, samDesired, phkResult):
-        if FuncEnable['RegOpenKeyExA']:
-            try:
-                logging.debug("RegOpenKey->KeyHandle:%s, OpenKey:%s"%(self.uint(hKey), event.get_process().peek_string(lpSubKey)))
-            except:
-                logging.debug("RegOpenKeyError!")
+        MyPreRegOpenKeyExA(event, ra, hKey, lpSubKey, ulOptions, samDesired, phkResult)
     def post_RegOpenKeyExA(self, event, retval):
-        pass
+        MyPostRegOpenKeyExA(event, retval)
     
     #RegOpenKeyW
     def pre_RegOpenKeyW(self, event, ra, hKey, lpSubKey, phkResult):
-        if FuncEnable['RegOpenKeyW']:
-            try:
-                logging.debug("RegOpenKey->KeyHandle:%s, OpenKey:%s"%(self.uint(hKey), event.get_process().peek_string(lpSubKey,fUnicode=True)))
-            except:
-                logging.debug("RegOpenKeyError!")
+        MyPreRegOpenKeyW(event, ra, hKey, lpSubKey, phkResult)
     def post_RegOpenKeyW(self, event, retval):
-        pass
+        MyPostRegOpenKeyW(event, retval)
 
     #RegOpenKeyExW
     def pre_RegOpenKeyExW(self, event, ra, hKey, lpSubKey, ulOptions, samDesired,phkResult):
-        if FuncEnable['RegOpenKeyExW']:
-            try:
-                logging.debug("RegOpenKey->KeyHandle:%s, OpenKey:%s"%(self.uint(hKey), event.get_process().peek_string(lpSubKey,fUnicode=True)))
-            except:
-                logging.debug("RegOpenKeyError!")
+        MyPreRegOpenKeyExW(event, ra, hKey, lpSubKey, ulOptions, samDesired,phkResult)
     def post_RegOpenKeyExW(self, event, retval):
-        pass
-
+        MyPostRegOpenKeyExW(event, retval)
 
     #RegDeleteKeyA
     def pre_RegDeleteKeyA(self, event, ra, hKey, lpSubKey):
-        if FuncEnable['RegDeleteKeyA']:
-            try:
-                logging.debug("RegDeleteKey->KeyHandle:%s, DeleteKey:%s"%(self.uint(hKey), event.get_process().peek_string(lpSubKey)))
-            except:
-                logging.debug("RegDeleteKeyError!")
+        MyPreRegDeleteKeyA(event, ra, hKey, lpSubKey)
     def post_RegDeleteKeyA(self, event, retval):
-        pass
+        MyPostRegDeleteKeyA(event, retval)
 
     #RegDeleteKeyW
     def pre_RegDeleteKeyW(self, event, ra, hKey, lpSubKey):
-        if FuncEnable['RegDeleteKeyW']:
-            try:
-                logging.debug("RegDeleteKey->KeyHandle:%s, DeleteKey:%s"%(self.uint(hKey), event.get_process().peek_string(lpSubKey,fUnicode=True)))
-            except:
-                logging.debug("RegDeleteKeyError!")
+        MyPreRegDeleteKeyW(event, ra, hKey, lpSubKey)
     def post_RegDeleteKeyW(self, event, retval):
-        pass
-
+        MyPostRegDeleteKeyW(event, retval)
 
     #RegDeleteValueA
     def pre_RegDeleteValueA(self, event, ra, hKey, lpValueName):
-        if FuncEnable['RegDeleteValueA']:
-            try:
-                logging.debug("RegDeleteValue->KeyHandle:%s, DeleteValue:%s"%(self.uint(hKey), event.get_process().peek_string(lpValueName)))
-            except:
-                logging.debug("RegDeleteValueError!")
+        MyPreRegDeleteValueA(event, ra, hKey, lpValueName)
     def post_RegDeleteValueA(self, event, retval):
-        pass
+        MyPostRegDeleteValueA(event, retval)
 
     #RegDeleteValueW
     def pre_RegDeleteValueW(self, event, ra, hKey, lpValueName):
-        if FuncEnable['RegDeleteValueW']:
-            try:
-                logging.debug("RegDeleteValue->KeyHandle:%s, DeleteValue:%s"%(self.uint(hKey), event.get_process().peek_string(lpValueName,fUnicode=True)))
-            except:
-                logging.debug("RegDeleteValueError!")
+        MyPreRegDeleteValueW(event, ra, hKey, lpValueName)
     def post_RegDeleteValueW(self, event, retval):
-        pass
+        MyPostRegDeleteValueW(event, retval)
 
     #RegGetValueA
-    def pre_RegGetValueA(self, event, ra, hKey, lpSubKey, lpValue, dwFlags, pdwType, pvData, pcbData):
-        if FuncEnable['RegGetValueA']:
-            try:
-                logging.debug("RegGetValue->KeyHandle:%s, Key:%s, GetValueName:%s"%(self.uint(hKey), event.get_process().peek_string(lpSubKey),event.get_process().peek_string(lpValue)))
-            except:
-                logging.debug("RegGetValueError!")
+    def pre_RegGetValueA(self, event, ra, hKey, lpSubKey, lpValue, dwFlags, 
+    pdwType, pvData, pcbData):
+        MyPreRegGetValueA(event, ra, hKey, lpSubKey, lpValue, dwFlags, 
+        pdwType, pvData, pcbData)
     def post_RegGetValueA(self, event, ra):
-        pass
+        MyPostRegGetValueA(event, ra)
 
     #RegGetValueW
-    def pre_RegGetValueW(self, event, ra, hKey, lpSubKey, lpValue, dwFlags, pdwType, pvData, pcbData):
-        if FuncEnable['RegGetValueW']:
-            try:
-                logging.debug("RegGetValue->KeyHandle:%s, Key:%s, GetValueName:%s"%(self.uint(hKey), event.get_process().peek_string(lpSubKey,fUnicode=True),event.get_process().peek_string(lpValue,fUnicode=True)))
-            except:
-                logging.debug("RegGetValueError!")
+    def pre_RegGetValueW(self, event, ra, hKey, lpSubKey, lpValue, dwFlags, 
+    pdwType, pvData, pcbData):
+        MyPreRegGetValueW(event, ra, hKey, lpSubKey, lpValue, dwFlags,
+         pdwType, pvData, pcbData)
     def post_RegGetValueW(self, event, ra):
-        pass
+        MyPostRegGetValueW(event, ra)
 
     #RegLoadKeyA
     def pre_RegLoadKeyA(self, event, ra, hKey, lpSubKey, lpFile):
-        if FuncEnable['RegLoadKeyA']:
-            try:
-                logging.debug("RegLoadKey->KeyHandle:%s, Key:%s, LoadFile:%s"%(self.uint(hKey), event.get_process().peek_string(lpSubKey),event.get_process().peek_string(lpFile)))
-            except:
-                logging.debug("RegLoadKeyError!")
+        MyPreRegLoadKeyA(event, ra, hKey, lpSubKey, lpFile)
     def post_RegLoadKeyA(self, event, retval):
-        pass
+        MyPostRegLoadKeyA(event, retval)
     
     #RegLoadKeyW
     def pre_RegLoadKeyW(self, event, ra, hKey, lpSubKey, lpFile):
-        if FuncEnable['RegLoadKeyW']:
-            try:
-                logging.debug("RegLoadKey->KeyHandle:%s, Key:%s, LoadFile:%s"%(self.uint(hKey), event.get_process().peek_string(lpSubKey,fUnicode=True),event.get_process().peek_string(lpFile,fUnicode=True)))
-            except:
-                logging.debug("RegLoadKeyError!")
+        MyPreRegLoadKeyW(event, ra, hKey, lpSubKey, lpFile)
     def post_RegLoadKeyw(self, event, retval):
-        pass
+        MyPostRegLoadKeyw(event, retval)
     
     #RegSetKeyValueA
-    def pre_RegSetKeyValueA(self, event, ra, hKey, lpSubKey, lpValueName, dwType, lpData, cbData):
-        if FuncEnable['RegSetKeyValueA']:
-            try:
-                logging.debug("RegSetKeyValue->KeyHandle:%s, Key:%s, UpdateValueName:%s"%(self.uint(hKey), event.get_process().peek_string(lpSubKey),event.get_process().peek_string(lpValueName)))
-            except:
-                logging.debug("RegSetKeyValueError!")
+    def pre_RegSetKeyValueA(self, event, ra, hKey, lpSubKey, lpValueName, 
+    dwType, lpData, cbData):
+        MyPreRegSetKeyValueA(event, ra, hKey, lpSubKey, lpValueName, 
+        dwType, lpData, cbData)
     def post_RegSetKeyValueA(self, event, retval):
-        pass
+        MyPostRegSetKeyValueA(event, retval)
 
     #RegSetKeyValueW
-    def pre_RegSetKeyValueW(self, event, ra, hKey, lpSubKey, lpValueName, dwType, lpData, cbData):
-        if FuncEnable['RegSetKeyValueW']:
-            try:
-                logging.debug("RegSetKeyValue->KeyHandle:%s, Key:%s, UpdateValueName:%s"%(self.uint(hKey), event.get_process().peek_string(lpSubKey,fUnicode=True),event.get_process().peek_string(lpValueName,fUnicode=True)))
-            except:
-                logging.debug("RegSetKeyValueError!")
+    def pre_RegSetKeyValueW(self, event, ra, hKey, lpSubKey, lpValueName, 
+    dwType, lpData, cbData):
+        MyPreRegSetKeyValueW(event, ra, hKey, lpSubKey, lpValueName,
+        dwType, lpData, cbData)
     def post_RegSetKeyValueW(self, event, retval):
-        pass
+        MyPostRegSetKeyValueW(event, retval)
 
     #RegSetValueExA
-    def pre_RegSetValueExA(self, event, ra, hKey, lpValueName, Reserved, dwType, lpData, cbData):
-        if FuncEnable['RegSetValueExA']:
-            try:
-                logging.debug("RegSetValue->KeyHandle:%s, UpdateValueName:%s"%(self.uint(hKey) ,event.get_process().peek_string(lpValueName)))
-            except:
-                logging.debug("RegSetKeyValueError!")
+    def pre_RegSetValueExA(self, event, ra, hKey, lpValueName, Reserved, 
+    dwType, lpData, cbData):
+        MyPreRegSetValueExA(event, ra, hKey, lpValueName, Reserved,
+        dwType, lpData, cbData)
     def post_RegSetValueExA(self, event, retval):
-        pass
+        MyPostRegSetValueExA(event, retval)
 
     #RegSetValueExW
-    def pre_RegSetValueExW(self, event, ra, hKey, lpValueName, Reserved, dwType, lpData, cbData):
-        if FuncEnable['RegSetValueExA']:
-            try:
-                logging.debug("RegSetValue->KeyHandle:%s, UpdateValueName:%s"%(self.uint(hKey) ,event.get_process().peek_string(lpValueName, fUnicode=True)))
-            except:
-                logging.debug("RegSetKeyValueError!")
+    def pre_RegSetValueExW(self, event, ra, hKey, lpValueName, Reserved, 
+    dwType, lpData, cbData):
+        MyPreRegSetValueExW(event, ra, hKey, lpValueName, Reserved,
+        dwType, lpData, cbData)
     def post_RegSetValueExW(self, event, retval):
-        pass
+        MyPostRegSetValueExW(event, retval)
 
 #WininetApis
     #InternetOpenA
-    def pre_InternetOpenA(self, event, ra, lpszAgent, dwAccessType, lpszProxy, lpszProxyBypass, dwFlags):
-        if FuncEnable['InternetOpenA']:
-            try:
-                proc = event.get_process()
-                logging.debug("InternetOpen->CallingEntry:%s, Proxy:%s, ProxyBpass:%s"%(proc.peek_string(lpszAgent), proc.peek_string(lpszProxy), proc.peek_string(lpszProxyBypass)))
-            except:
-                logging.debug("InternetOpenA Error!")
+    def pre_InternetOpenA(self, event, ra, lpszAgent, dwAccessType, lpszProxy, 
+    lpszProxyBypass, dwFlags):
+        MyPreInternetOpenA(event, ra, lpszAgent, dwAccessType, lpszProxy, 
+        lpszProxyBypass, dwFlags)
     def post_InternetOpenA(self, event, retval):
-        pass
+        MyPostInternetOpenA(event, retval)
 
     #InternetOpenW
-    def pre_InternetOpenW(self, event, ra, lpszAgent, dwAccessType, lpszProxy, lpszProxyBypass, dwFlags):
-        if FuncEnable['InternetOpenW']:
-            try:
-                proc = event.get_process()
-                logging.debug("InternetOpen->CallingEntry:%s, Proxy:%s, ProxyBpass:%s"%(proc.peek_string(lpszAgent,fUnicode=True), proc.peek_string(lpszProxy,fUnicode=True), proc.peek_string(lpszProxyBypass,fUnicode=True)))
-            except:
-                logging.debug("InternetOpenW Error!")
+    def pre_InternetOpenW(self, event, ra, lpszAgent, dwAccessType, lpszProxy, 
+    lpszProxyBypass, dwFlags):
+        MyPreInternetOpenW(event, ra, lpszAgent, dwAccessType, lpszProxy, 
+        lpszProxyBypass, dwFlags)
     def post_InternetOpenW(self, event, retval):
-        pass
+        MyPostInternetOpenW(event, retval)
 
     #InternetOpenUrlA
-    def pre_InternetOpenUrlA(self, event, ra, hInternet, lpszUrl, lpszHeaders, dwHeadersLength, dwFlags, dwContext):
-        if FuncEnable['InternetOpenUrlA']:
-            try:
-                proc = event.process()
-                logging.debug("InternetOpenUrl->Url:%s, Headers:%s"%(proc.peek_string(lpszUrl), proc.peek_string(lpszHeaders)))
-            except:
-                logging.debug("InternetOpenUrl Error!")
+    def pre_InternetOpenUrlA(self, event, ra, hInternet, lpszUrl, lpszHeaders, 
+    dwHeadersLength, dwFlags, dwContext):
+        MyPreInternetOpenUrlA(event, ra, hInternet, lpszUrl, lpszHeaders, 
+        dwHeadersLength, dwFlags, dwContext)
     def post_InternetOpenUrlA(self, event, retval):
-        pass
+        MyPostInternetOpenUrlA(event, retval)
 
     #InternetOpenUrlW
-    def pre_InternetOpenUrlW(self, event, ra, hInternet, lpszUrl, lpszHeaders, dwHeadersLength, dwFlags, dwContext):
-        if FuncEnable['InternetOpenUrlW']:
-            try:
-                proc = event.process()
-                logging.debug("InternetOpenUrl->Url:%s, Headers:%s"%(proc.peek_string(lpszUrl,fUnicode=True), proc.peek_string(lpszHeaders,fUnicode=True)))
-            except:
-                logging.debug("InternetOpenUrl Error!")
+    def pre_InternetOpenUrlW(self, event, ra, hInternet, lpszUrl, lpszHeaders, 
+    dwHeadersLength, dwFlags, dwContext):
+        MyPreInternetOpenUrlW(event, ra, hInternet, lpszUrl, lpszHeaders, 
+        dwHeadersLength, dwFlags, dwContext)
     def post_InternetOpenUrlW(self, event, retval):
-        pass
+        MyPostInternetOpenUrlW(event, retval)
     
     #InternetConnectA
-    def pre_InternetConnectA(self, event, ra, hInternet, lpszServerName, nServerPort, lpszUserName, lpszPassword, dwService, dwFlags, dwContext):
-        if FuncEnable['InternetConnectA']:
-            try:
-                proc = event.get_process()
-                logging.debug("InternetConnect->ServerName:%s, UserName:%s, Password:%s"%(proc.peek_string(lpszServerName), proc.peek_string(lpszUserName), proc.peek_string(lpszPassword)))
-                self.InternetConnectA_Queue.put(proc.peek_string(lpszServerName))
-            except:
-                logging.debug("InternetConnectError!")
+    def pre_InternetConnectA(self, event, ra, hInternet, lpszServerName, nServerPort, 
+    lpszUserName, lpszPassword, dwService, dwFlags, dwContext):
+        MyPreInternetConnectA(event, ra, hInternet, lpszServerName, nServerPort, 
+        lpszUserName, lpszPassword, dwService, dwFlags, dwContext)
     def post_InternetConnectA(self, event, retval):
-        if FuncEnable['InternetConnectA']:
-            try:
-                if not self.InternetConnectA_Queue.empty():
-                    server = self.InternetConnectA_Queue.get()
-                    self.InternetConnectA_Queue.task_done()
-                    self.internet_map[int(retval)] = server
-            except:
-                logging.debug("InternetConnectError!")
+        MyPostInternetConnectA(event, retval)
 
     #InternetConnectW
-    def pre_InternetConnectW(self, event, ra, hInternet, lpszServerName, nServerPort, lpszUserName, lpszPassword, dwService, dwFlags, dwContext):
-        if FuncEnable['InternetConnectW']:
-            try:
-                proc = event.get_process()
-                logging.debug("InternetConnect->ServerName:%s, UserName:%s, Password:%s"%(proc.peek_string(lpszServerName, fUnicode=True), proc.peek_string(lpszUserName, fUnicode=True), proc.peek_string(lpszPassword, fUnicode=True)))
-                self.InternetConnectW_Queue.put(proc.peek_string(lpszServerName,fUnicode=True))
-            except:
-                logging.debug("InternetConnectError!")
+    def pre_InternetConnectW(self, event, ra, hInternet, lpszServerName, nServerPort, 
+    lpszUserName, lpszPassword, dwService, dwFlags, dwContext):
+        MyPreInternetConnectW(event, ra, hInternet, lpszServerName, nServerPort, 
+        lpszUserName, lpszPassword, dwService, dwFlags, dwContext)
     def post_InternetConnectW(self, event, retval):
-        if FuncEnable['InternetConnectW']:
-            try:
-                if not self.InternetConnectW_Queue.empty():
-                    server = self.InternetConnectW_Queue.get()
-                    self.InternetConnectW_Queue.task_done()
-                    self.internet_map[int(retval)] = server
-            except:
-                logging.debug("InternetConnectError!")
+        MyPostInternetConnectW(event, retval)
 
     #HttpOpenRequestA
-    def pre_HttpOpenRequestA(self, event, ra, hConnect, lpszVerb, lpszObjectName, lpszVersion, lpszReferrer, lplpszAcceptTypes, dwFlags, dwContext):
-        if FuncEnable['HttpOpenRequestA']:
-            try:
-                proc = event.get_process()
-                logging.debug("HttpOpenRequest->Object:%s, Method:%s, Version:%s, Referrer:%s"%(self.internet_map[int(hConnect)]+proc.peek_string(lpszObjectName), proc.peek_string(lpszVerb), proc.peek_string(lpszVersion), proc.peek_string(lpszReferrer)))
-            except:
-                logging.debug("HttpOpenRequest Error!")
+    def pre_HttpOpenRequestA(self, event, ra, hConnect, lpszVerb, lpszObjectName, 
+    lpszVersion, lpszReferrer, lplpszAcceptTypes, dwFlags, dwContext):
+        MyPreHttpOpenRequestA(event, ra, hConnect, lpszVerb, lpszObjectName, 
+        lpszVersion, lpszReferrer, lplpszAcceptTypes, dwFlags, dwContext)
     def post_HttpOpenRequestA(self, event, retval):
-        pass
+        MyPostHttpOpenRequestA(event, retval)
 
     #HttpOpenRequestW
-    def pre_HttpOpenRequestW(self, event, ra, hConnect, lpszVerb, lpszObjectName, lpszVersion, lpszReferrer, lplpszAcceptTypes, dwFlags, dwContext):
-        if FuncEnable['HttpOpenRequestW']:
-            try:
-                proc = event.get_process()
-                logging.debug("HttpOpenRequest->Object:%s, Method:%s, Version:%s, Referrer:%s"%(self.internet_map[int(hConnect)]+proc.peek_string(lpszObjectName,fUnicode=True), proc.peek_string(lpszVerb,fUnicode=True), proc.peek_string(lpszVersion,fUnicode=True), proc.peek_string(lpszReferrer,fUnicode=True)))
-            except:
-                logging.debug("HttpOpenRequest Error!")
+    def pre_HttpOpenRequestW(self, event, ra, hConnect, lpszVerb, lpszObjectName, 
+    lpszVersion, lpszReferrer, lplpszAcceptTypes, dwFlags, dwContext):
+        MyPreHttpOpenRequestW(event, ra, hConnect, lpszVerb, lpszObjectName, 
+        lpszVersion, lpszReferrer, lplpszAcceptTypes, dwFlags, dwContext)
     def post_HttpOpenRequestW(self, event, retval):
-        pass
-
-# Some helper private methods
-
-    def __print_opening_ansi( self, event, tag, pointer ):
-        string = event.get_process().peek_string( pointer )
-        tid    = event.get_tid()
-        print  "%d: Opening %s: %s" % (tid, tag, string)
-
-    def __print_opening_unicode( self, event, tag, pointer ):
-        string = event.get_process().peek_string( pointer, fUnicode = True )
-        tid    = event.get_tid()
-        print  "%d: Opening %s: %s" % (tid, tag, string)
-
-    def __print__hex(self,event, pointer, len):
-        offset = 0
-        rtn = '\n'
-        while offset < len:
-            rtn += "%02x"%int(event.get_process().peek_char(pointer+offset))
-            offset += 1
-            if offset % 8 == 0:
-                rtn += ' '
-            if offset % 64 == 0:
-                rtn += '\n'
-        return rtn
-
-    def __print_success( self, event, retval ):
-        tid = event.get_tid()
-        if retval:
-            print "%d: Success: %x" % (tid, retval)
-        else:
-            print "%d: Failed!" % tid
-
-    def uint(self, num):
-        return int(num)&0xffffffff
+        MyPostHttpOpenRequestW(event, retval)
 
