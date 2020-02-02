@@ -54,7 +54,9 @@ apihooking = {
             ( 'InternetConnectA'     , (HANDLE, PVOID, WORD, PVOID, PVOID, DWORD, DWORD, PVOID) ),
             ( 'InternetConnectW'     , (HANDLE, PVOID, WORD, PVOID, PVOID, DWORD, DWORD, PVOID) ),
             ( 'HttpOpenRequestA'     , (HANDLE, PVOID, PVOID, PVOID, PVOID, PVOID, DWORD, PVOID) ),
-            ( 'HttpOpenRequestW'     , (HANDLE, PVOID, PVOID, PVOID, PVOID, PVOID, DWORD, PVOID) )
+            ( 'HttpOpenRequestW'     , (HANDLE, PVOID, PVOID, PVOID, PVOID, PVOID, DWORD, PVOID) ),
+            ( 'HttpQueryInfoA'       , (HANDLE, DWORD, PVOID, PVOID, PVOID) ),
+            ( 'HttpQueryInfoW'       , (HANDLE, DWORD, PVOID, PVOID, PVOID) )
         ]
     }
 
@@ -110,5 +112,7 @@ FuncEnable = {
     'InternetConnectA'       :True,
     'InternetConnectW'       :True,
     'HttpOpenRequestA'       :True,
-    'HttpOpenRequestW'       :True
+    'HttpOpenRequestW'       :True,
+    'HttpQueryInfoA'         :True,
+    'HttpQueryInfoW'         :True
 }

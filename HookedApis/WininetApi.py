@@ -14,7 +14,8 @@ tmp_handle = 0
 #WininetMultiThreadsTmp
 InternetConnectA_Queue = Queue()
 InternetConnectW_Queue = Queue()
-
+HttpQueryInfoA_Queue = Queue()
+HttpQueryInfoW_Queue = Queue()
 
 #WininetApis
 #InternetOpenA
@@ -120,6 +121,58 @@ def MyPreHttpOpenRequestW(event, ra, hConnect, lpszVerb, lpszObjectName, lpszVer
             logging.debug("HttpOpenRequestW Error!")
 def MyPostHttpOpenRequestW(event, retval):
     pass
+
+#HttpQueryInfoA
+def MyPreHttpQueryInfoA(event, ra, hRequest, dwInfoLevel, lpBuffer, lpdwBufferLength, lpdwIndex):
+    if FuncEnable['HttpQueryInfoA']:
+        try:
+            HttpQueryInfoA_Queue.put([hRequest, lpBuffer, lpdwBufferLength])
+        except:
+            logging.debug("HttpQueryInfoA Error!")
+def MyPostHttpQueryInfoA(event, retval):
+    if retval:
+        try:
+            if not HttpQueryInfoA_Queue.empty():
+                tmp = HttpQueryInfoA_Queue.get()
+                HttpQueryInfoA_Queue.task_done()
+            else:
+                return
+            proc = event.get_process()
+            try:
+                context = proc.peek_string(tmp[1],dwMaxSize = proc.peek_int(tmp[2])).encode("ascii")
+                logging.debug("HttpQueryInfoA->Result:%s"%conetxt)
+            except:
+                context = __print__hex(event, tmp[1], tmp[2])
+                logging.debug("HttpQueryInfoA->Result:%s"%conetxt)
+        except:
+            logging.debug("HttpQueryInfoA Error!")
+
+#HttpQueryInfoW
+def MyPreHttpQueryInfoW(event, ra, hRequest, dwInfoLevel, lpBuffer, lpdwBufferLength, lpdwIndex):
+    if FuncEnable['HttpQueryInfoW']:
+        try:
+            HttpQueryInfoW_Queue.put([hRequest, lpBuffer, lpdwBufferLength])
+        except:
+            logging.debug("HttpQueryInfoW Error!")
+def MyPostHttpQueryInfoA(event, retval):
+    if retval:
+        try:
+            if not HttpQueryInfoW_Queue.empty():
+                tmp = HttpQueryInfoW_Queue.get()
+                HttpQueryInfoW_Queue.task_done()
+            else:
+                return
+            proc = event.get_process()
+            try:
+                context = proc.peek_string(tmp[1], fUnicode = True, dwMaxSize = proc.peek_int(tmp[2]))
+                logging.debug("HttpQueryInfoW->Result:%s"%conetxt)
+            except:
+                context = __print__hex(event, tmp[1], tmp[2])
+                logging.debug("HttpQueryInfoW->Result:%s"%conetxt)
+        except:
+            logging.debug("HttpQueryInfoW Error!")
+                
+                
 
 # Some helper private methods
 
