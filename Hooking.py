@@ -56,7 +56,15 @@ apihooking = {
             ( 'HttpOpenRequestA'     , (HANDLE, PVOID, PVOID, PVOID, PVOID, PVOID, DWORD, PVOID) ),
             ( 'HttpOpenRequestW'     , (HANDLE, PVOID, PVOID, PVOID, PVOID, PVOID, DWORD, PVOID) ),
             ( 'HttpQueryInfoA'       , (HANDLE, DWORD, PVOID, PVOID, PVOID) ),
-            ( 'HttpQueryInfoW'       , (HANDLE, DWORD, PVOID, PVOID, PVOID) )
+            ( 'HttpQueryInfoW'       , (HANDLE, DWORD, PVOID, PVOID, PVOID) ),
+            ( 'HttpSendRequestA'     , (HANDLE, PVOID, DWORD, PVOID, DWPRD) ),
+            ( 'HttpSendRequestW'     , (HANDLE, PVOID, DWORD, PVOID, DWPRD) ),
+            ( 'FtpCommandA'          , (HANDLE, BOOL, DWORD, PVOID, PVOID, PVOID) ),
+            ( 'FtpCommandW'          , (HANDLE, BOOL, DWORD, PVOID, PVOID, PVOID) ),
+            ( 'FtpGetFileA'          , (HANDLE, PVOID, PVOID, BOOL, DOWRD, DWORD, PVOID) ),
+            ( 'FtpGetFileW'          , (HANDLE, PVOID, PVOID, BOOL, DOWRD, DWORD, PVOID) ),
+            ( 'FtpOpenFileA'         , (HANDLE, PVOID, DWORD, DWORD, PVOID) ),
+            ( 'FtpOpenFileW'         , (HANDLE, PVOID, DWORD, DWORD, PVOID) )
         ]
     }
 
@@ -114,5 +122,13 @@ FuncEnable = {
     'HttpOpenRequestA'       :True,
     'HttpOpenRequestW'       :True,
     'HttpQueryInfoA'         :True,
-    'HttpQueryInfoW'         :True
+    'HttpQueryInfoW'         :True,
+    'HttpSendRequestA'       :True,
+    'HttpSendRequestW'       :True,
+    'FtpCommandA'            :True,
+    'FtpCommandW'            :True,
+    'FtpGetFileA'            :True,
+    'FtpGetFileW'            :True,
+    'FtpOpenFileA'           :True,
+    'FtpOpenFileW'           :True
 }

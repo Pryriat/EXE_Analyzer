@@ -1,6 +1,7 @@
 from winappdbg.win32 import *
 from winappdbg import *
 from Hooking import *
+from FileApi import file_map
 import sys
 import logging
 import ctypes
@@ -16,6 +17,8 @@ InternetConnectA_Queue = Queue()
 InternetConnectW_Queue = Queue()
 HttpQueryInfoA_Queue = Queue()
 HttpQueryInfoW_Queue = Queue()
+FtpOpenFileA_Queue = Queue()
+FtpOpenFileW_Queue = Queue()
 
 #WininetApis
 #InternetOpenA
@@ -130,7 +133,7 @@ def MyPreHttpQueryInfoA(event, ra, hRequest, dwInfoLevel, lpBuffer, lpdwBufferLe
         except:
             logging.debug("HttpQueryInfoA Error!")
 def MyPostHttpQueryInfoA(event, retval):
-    if retval:
+    if retval and FuncEnable['HttpQueryInfoA']:
         try:
             if not HttpQueryInfoA_Queue.empty():
                 tmp = HttpQueryInfoA_Queue.get()
@@ -140,10 +143,9 @@ def MyPostHttpQueryInfoA(event, retval):
             proc = event.get_process()
             try:
                 context = proc.peek_string(tmp[1],dwMaxSize = proc.peek_int(tmp[2])).encode("ascii")
-                logging.debug("HttpQueryInfoA->Result:%s"%conetxt)
             except:
                 context = __print__hex(event, tmp[1], tmp[2])
-                logging.debug("HttpQueryInfoA->Result:%s"%conetxt)
+            logging.debug("HttpQueryInfoA->Result:%s"%conetxt)
         except:
             logging.debug("HttpQueryInfoA Error!")
 
@@ -155,7 +157,7 @@ def MyPreHttpQueryInfoW(event, ra, hRequest, dwInfoLevel, lpBuffer, lpdwBufferLe
         except:
             logging.debug("HttpQueryInfoW Error!")
 def MyPostHttpQueryInfoA(event, retval):
-    if retval:
+    if retval and FuncEnable['HttpQueryInfoW']::
         try:
             if not HttpQueryInfoW_Queue.empty():
                 tmp = HttpQueryInfoW_Queue.get()
@@ -165,18 +167,156 @@ def MyPostHttpQueryInfoA(event, retval):
             proc = event.get_process()
             try:
                 context = proc.peek_string(tmp[1], fUnicode = True, dwMaxSize = proc.peek_int(tmp[2]))
-                logging.debug("HttpQueryInfoW->Result:%s"%conetxt)
             except:
                 context = __print__hex(event, tmp[1], tmp[2])
-                logging.debug("HttpQueryInfoW->Result:%s"%conetxt)
+            logging.debug("HttpQueryInfoW->Result:%s"%conetxt)
         except:
             logging.debug("HttpQueryInfoW Error!")
-                
-                
+
+#HttpSendRequestA
+def MyPreHttpSendRequestA(event, ra, hRequest, lpszHeaders, dwHeadersLength, lpOptional, dwOptionalLength):
+    if FuncEnable['HttpSendRequestA']:
+        try:
+            proc = event.get_process()
+            try:
+                jud = proc.peek_string(lpszHeaders, dwMaxSize=dwHeadersLength).encode('ascii')
+            except:
+                jud = __print__hex(event, lpszHeaders, dwHeadersLength)
+            logging.debug("HttpSendRequestA->Context:%s"%jud)
+        except:
+            logging.debug("HttpSendRequestA Error!")
+def MyPostHttpSendRequestA(event, retval):
+    pass
+
+#HttpSendRequestW
+def MyPreHttpSendRequestW(event, ra, hRequest, lpszHeaders, dwHeadersLength, lpOptional, dwOptionalLength):
+    if FuncEnable['HttpSendRequestW']:
+        try:
+            proc = event.get_process()
+            try:
+                jud = proc.peek_string(lpszHeaders, dwMaxSize=dwHeadersLength,fUnicode=True)
+            except:
+                jud = __print__hex(event, lpszHeaders, dwHeadersLength)
+            logging.debug("HttpSendRequestW->Context:%s"%jud)
+        except:
+            logging.debug("HttpSendRequestW Error!")
+
+def MyPostHttpSendRequestW(event, retval):
+    pass
+
+#FtpCommandA
+def MyPreFtpCommandA(event, ra, hConnect, fExpectResponse, dwFlags, lpszCommand, dwContext, phFtpCommand):
+    if FuncEnable['FtpCommandA']:
+        try:
+            proc = event.get_process()
+            try:
+                jud = proc.peek_string(lpszCommand).encode('ascii')
+            except:
+                jud = __print__hex(event, lpszCommand)
+            logging.debug("FtpCommandA->Server:%s, Command:%s"%(internet_map[int(hConnect)], jud))
+        except:
+            logging.debug("FtpCommandA Error!")
+def MyPostFtpCommandA(event, retval):
+    pass
+
+#FtpCommandW
+def MyPreFtpCommandW(event, ra, hConnect, fExpectResponse, dwFlags, lpszCommand, dwContext, phFtpCommand):
+    if FuncEnable['FtpCommandA']:
+        try:
+            proc = event.get_process()
+            try:
+                jud = proc.peek_string(lpszCommand,fUnicode=True)
+            except:
+                jud = __print__hex(event, lpszCommand)
+            logging.debug("FtpCommandW->Server:%s, Command:%s"%(internet_map[int(hConnect)], jud))
+        except:
+            logging.debug("FtpCommandW Error!")
+def MyPostFtpCommandW(event, retval):
+    pass
+
+#FtpGetFileA
+def MyPreFtpGetFileA(event, ra, hConnect, lpszRemoteFile, lpszNewFile, fFailIfExists, dwFlagsAndAttributes, dwFlags, dwContext):
+    if FuncEnable['FtpGetFileA']:
+        try:
+            proc = event.get_process()
+            try:
+                RF = proc.peek_string(lpszRemoteFile).encode('ascii')
+                NF = proc.peek_string(lpszNewFile).encode('ascii')
+            except:
+                RF = __print__hex(event, lpszRemoteFile)
+                NF = __print__hex(event, lpszNewFile)
+            logging.debug("FtpGetFileA->Server:%s, RemoteFile:%s, NewFile:%s"%(internet_map[int(hConnect)], RF, NF))
+        except:
+            logging.debug("FtpGetFileA Error!")
+def MyPostFtpGetFileA(event, retval):
+    pass
+
+#FtpGetFileW
+def MyPreFtpGetFileW(event, ra, hConnect, lpszRemoteFile, lpszNewFile, fFailIfExists, dwFlagsAndAttributes, dwFlags, dwContext):
+    if FuncEnable['FtpGetFileW']:
+        try:
+            proc = event.get_process()
+            try:
+                RF = proc.peek_string(lpszRemoteFile,fUnicode=True)
+                NF = proc.peek_string(lpszNewFile,fUnicode=True)
+            except:
+                RF = __print__hex(event, lpszRemoteFile)
+                NF = __print__hex(event, lpszNewFile)
+            logging.debug("FtpGetFileW->Server:%s, RemoteFile:%s, NewFile:%s"%(internet_map[int(hConnect)], RF, NF))
+        except:
+            logging.debug("FtpGetFileW Error!")
+def MyPostFtpGetFileW(event, retval):
+    pass
+
+#FtpOpenFileA
+def MyPreFtpOpenFileA(event, ra, hConnect, lpszFileName, dwAccess, dwFlags, dwContext):
+    if FuncEnable['FtpOpenFileA']:
+        try:
+            proc = event.get_process()
+            try:
+                jud = proc.peek_string(lpszFileName).encode('ascii')
+            except:
+                jud = __print__hex(event, lpszFileName)
+            logging.debug("FtpOpenFileA->Server:%s, File:%s"%(internet_map[int(hConnect), jud]))
+            FtpOpenFileA_Queue.put(jud)
+        except:
+            logging.debug("FtpOpenFileA Error!")
+def MyPostFtpOpenFileA(event, retval):
+    if retval:
+        try:
+            if not FtpOpenFileA_Queue.empty():
+                tmp = FtpOpenFileA_Queue.get()
+                FtpOpenFileA_Queue.task_done()
+                file_map[int(retval)] = {'file_name':tmp,'offset':0,'ReadBuffer':0,'ReadLength':0}
+        except:
+            logging.debug("FtpOpenFileA Error!")
+
+#FtpOpenFileW
+def MyPreFtpOpenFileW(event, ra, hConnect, lpszFileName, dwAccess, dwFlags, dwContext):
+    if FuncEnable['FtpOpenFileW']:
+        try:
+            proc = event.get_process()
+            try:
+                jud = proc.peek_string(lpszFileName,fUnicode=True)
+            except:
+                jud = __print__hex(event, lpszFileName)
+            logging.debug("FtpOpenFileA->Server:%s, File:%s"%(internet_map[int(hConnect), jud]))
+            FtpOpenFileW_Queue.put(jud)
+        except:
+            logging.debug("FtpOpenFileW Error!")
+def MyPostFtpOpenFileW(event, retval):
+    if retval:
+        try:
+            if not FtpOpenFileW_Queue.empty():
+                tmp = FtpOpenFileW_Queue.get()
+                FtpOpenFileW_Queue.task_done()
+                file_map[int(retval)] = {'file_name':tmp,'offset':0,'ReadBuffer':0,'ReadLength':0}
+        except:
+            logging.debug("FtpOpenFileW Error!")
 
 # Some helper private methods
 
-def __print__hex(event, pointer, len):
+def __print__hex(event, pointer, len=20):
     offset = 0
     rtn = '\n'
     while offset < len:

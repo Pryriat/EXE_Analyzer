@@ -369,4 +369,64 @@ class MyEventHandler( EventHandler ):
         lpszVersion, lpszReferrer, lplpszAcceptTypes, dwFlags, dwContext)
     def post_HttpOpenRequestW(self, event, retval):
         MyPostHttpOpenRequestW(event, retval)
+    
+    #HttpSendRequestA
+    def pre_HttpSendRequestA(self, event, ra, hRequest, lpszHeaders, dwHeadersLength, 
+    lpOptional, dwOptionalLength):
+        MyPreHttpSendRequestA(event, ra, hRequest, lpszHeaders, dwHeadersLength, 
+        lpOptional, dwOptionalLength)
+    def post_HttpSendRequestA(self, event, retval):
+        MyPostHttpSendRequestA(event, retval)
 
+    #HttpSendRequestW
+    def pre_HttpSendRequestW(self, event, ra, hRequest, lpszHeaders, dwHeadersLength, 
+    lpOptional, dwOptionalLength):
+        MyPreHttpSendRequestW(event, ra, hRequest, lpszHeaders, dwHeadersLength, 
+        lpOptional, dwOptionalLength)
+    def post_HttpSendRequestW(self, event, retval):
+        MyPostHttpSendRequestW(event, retval)
+    
+    #FtpCommandA
+    def pre_FtpCommandA(self, event, ra, hConnect, fExpectResponse, dwFlags, lpszCommand, 
+    dwContext, phFtpCommand):
+        MyPreFtpCommandA(event, ra, hConnect, fExpectResponse, dwFlags, lpszCommand, 
+        dwContext, phFtpCommand)
+    def post_FtpCommandA(self, event, retval):
+        MyPostFtpCommandA(event, retval)
+    
+    #FtpCommandA
+    def pre_FtpCommandW(self, event, ra, hConnect, fExpectResponse, dwFlags, lpszCommand, 
+    dwContext, phFtpCommand):
+        MyPreFtpCommandW(event, ra, hConnect, fExpectResponse, dwFlags, lpszCommand, 
+        dwContext, phFtpCommand)
+    def post_FtpCommandW(self, event, retval):
+        MyPostFtpCommandW(event, retval)
+
+    #FtpGetFileA
+    def pre_FtpGetFileA(self, event, ra, hConnect, lpszRemoteFile, lpszNewFile, fFailIfExists, 
+    dwFlagsAndAttributes, dwFlags, dwContext):
+        MyPreFtpGetFileA(event, ra, hConnect, lpszRemoteFile, lpszNewFile, fFailIfExists, 
+        dwFlagsAndAttributes, dwFlags, dwContext)
+    def post_FtpGetFileA(self, event, retval):
+        MyPostFtpGetFileA(event, retval)
+
+    #FtpGetFileW
+    def pre_FtpGetFileW(self, event, ra, hConnect, lpszRemoteFile, lpszNewFile, fFailIfExists, 
+    dwFlagsAndAttributes, dwFlags, dwContext):
+        MyPreFtpGetFileW(event, ra, hConnect, lpszRemoteFile, lpszNewFile, fFailIfExists, 
+        dwFlagsAndAttributes, dwFlags, dwContext)
+    def post_FtpGetFileW(self, event, retval):
+        MyPostFtpGetFileW(event, retval)
+
+    #FtpOpenFileA
+    def pre_FtpOpenFileA(self, event, ra, hConnect, lpszFileName, dwAccess, dwFlags, dwContext):
+        MyPreFtpOpenFileA(event, ra, hConnect, lpszFileName, dwAccess, dwFlags, dwContext)
+    def post_FtpOpenFileA(self, event, retval):
+        MyPostFtpOpenFileA(event, retval)
+
+    #FtpOpenFileW
+    def pre_FtpOpenFileW(self, event, ra, hConnect, lpszFileName, dwAccess, dwFlags, dwContext):
+        MyPreFtpOpenFileW(event, ra, hConnect, lpszFileName, dwAccess, dwFlags, dwContext)
+    def post_FtpOpenFileW(self, event, retval):
+        MyPostFtpOpenFileW(event, retval)
+    
