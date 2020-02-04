@@ -57,12 +57,12 @@ apihooking = {
             ( 'HttpOpenRequestW'     , (HANDLE, PVOID, PVOID, PVOID, PVOID, PVOID, DWORD, PVOID) ),
             ( 'HttpQueryInfoA'       , (HANDLE, DWORD, PVOID, PVOID, PVOID) ),
             ( 'HttpQueryInfoW'       , (HANDLE, DWORD, PVOID, PVOID, PVOID) ),
-            ( 'HttpSendRequestA'     , (HANDLE, PVOID, DWORD, PVOID, DWPRD) ),
-            ( 'HttpSendRequestW'     , (HANDLE, PVOID, DWORD, PVOID, DWPRD) ),
+            ( 'HttpSendRequestA'     , (HANDLE, PVOID, DWORD, PVOID, DWORD) ),
+            ( 'HttpSendRequestW'     , (HANDLE, PVOID, DWORD, PVOID, DWORD) ),
             ( 'FtpCommandA'          , (HANDLE, BOOL, DWORD, PVOID, PVOID, PVOID) ),
             ( 'FtpCommandW'          , (HANDLE, BOOL, DWORD, PVOID, PVOID, PVOID) ),
-            ( 'FtpGetFileA'          , (HANDLE, PVOID, PVOID, BOOL, DOWRD, DWORD, PVOID) ),
-            ( 'FtpGetFileW'          , (HANDLE, PVOID, PVOID, BOOL, DOWRD, DWORD, PVOID) ),
+            ( 'FtpGetFileA'          , (HANDLE, PVOID, PVOID, BOOL, DWORD, DWORD, PVOID) ),
+            ( 'FtpGetFileW'          , (HANDLE, PVOID, PVOID, BOOL, DWORD, DWORD, PVOID) ),
             ( 'FtpOpenFileA'         , (HANDLE, PVOID, DWORD, DWORD, PVOID) ),
             ( 'FtpOpenFileW'         , (HANDLE, PVOID, DWORD, DWORD, PVOID) )
         ]

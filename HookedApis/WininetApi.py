@@ -145,7 +145,7 @@ def MyPostHttpQueryInfoA(event, retval):
                 context = proc.peek_string(tmp[1],dwMaxSize = proc.peek_int(tmp[2])).encode("ascii")
             except:
                 context = __print__hex(event, tmp[1], tmp[2])
-            logging.debug("HttpQueryInfoA->Result:%s"%conetxt)
+            logging.debug("HttpQueryInfoA->Result:%s"%context)
         except:
             logging.debug("HttpQueryInfoA Error!")
 
@@ -156,8 +156,8 @@ def MyPreHttpQueryInfoW(event, ra, hRequest, dwInfoLevel, lpBuffer, lpdwBufferLe
             HttpQueryInfoW_Queue.put([hRequest, lpBuffer, lpdwBufferLength])
         except:
             logging.debug("HttpQueryInfoW Error!")
-def MyPostHttpQueryInfoA(event, retval):
-    if retval and FuncEnable['HttpQueryInfoW']::
+def MyPostHttpQueryInfoW(event, retval):
+    if retval and FuncEnable['HttpQueryInfoW']:
         try:
             if not HttpQueryInfoW_Queue.empty():
                 tmp = HttpQueryInfoW_Queue.get()
@@ -169,7 +169,7 @@ def MyPostHttpQueryInfoA(event, retval):
                 context = proc.peek_string(tmp[1], fUnicode = True, dwMaxSize = proc.peek_int(tmp[2]))
             except:
                 context = __print__hex(event, tmp[1], tmp[2])
-            logging.debug("HttpQueryInfoW->Result:%s"%conetxt)
+            logging.debug("HttpQueryInfoW->Result:%s"%context)
         except:
             logging.debug("HttpQueryInfoW Error!")
 
