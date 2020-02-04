@@ -1,5 +1,5 @@
 # EXE_Analyzer
-简易程序行为分析工具
+*"Follow the message."*
 
 # 功能
 - [x] 反调试（\*仅针对IsDebuggerPresent)
