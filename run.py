@@ -10,7 +10,7 @@ def simple_debugger(arg):
         # Start a new process for debugging.
             
             #debug.execv([arg], bBreakOnEntryPoint=True)
-            debug.execv([arg])
+            debug.execv([arg], bFollow=True)
 
         # Wait for the debugee to finish.
             debug.loop()
