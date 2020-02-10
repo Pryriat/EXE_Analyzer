@@ -75,12 +75,11 @@ HANDLE WINAPI MyCreateFileA(
 	HANDLE                hTemplateFile
 )
 {
-	PLOGD << L"CreateFileW";
 	HANDLE rtn = CreateFileA(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
 	std::string c((CHAR*)sc(lpFileName));
 	FileMap[rtn] = std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(c);
 	//if (c.find("my.log") == c.npos && c.find("MountPointManager") == c.npos)
-		//PLOGD << L"CreateFileW->FileName:" << c << ", FileHandle:" << rtn<<std::endl;
+		//PLOGD << L"CreateFileA->FileName:" << c << ", FileHandle:" << rtn<<std::endl;
 	return rtn;
 }
 
