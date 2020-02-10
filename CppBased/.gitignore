@@ -1,6 +1,7 @@
 /Debug
 /packages
 /x64
+/lib
 *.dll
 *.exe
 *.sln
