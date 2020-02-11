@@ -20,8 +20,10 @@ struct WT
 {
 	std::wstring*               lpFileName;
 	DWORD                 dwDesiredAccess;
+	DWORD                 dwShareMode;
 	DWORD                 dwCreationDisposition;
 	DWORD                 dwFlagsAndAttributes;
+	HANDLE                Shadow;
 };
 std::map<HANDLE, std::wstring> FileMap;
 std::map<HANDLE, WT> WriteFileMap;

@@ -13,8 +13,8 @@ void __stdcall NativeInjectionEntryPoint(REMOTE_ENTRY_INFO* inRemoteInfo)
 {
 	plog::init(plog::debug, "C:\\Users\\hjc98\\Desktop\\my.log"); 
 	InitFileApi64();
-	InitProcessApi64();
-	InitWinNetApi64();
+	//InitProcessApi64();
+	//InitWinNetApi64();
 	// If the threadId in the ACL is set to 0,
 	// then internally EasyHook uses GetCurrentThreadId()
 
