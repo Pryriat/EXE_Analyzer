@@ -27,7 +27,8 @@ namespace plog
         case info:
             return "INFO";
         case debug:
-            return "DEBUG";
+            //return "DEBUG";
+            return "";
         case verbose:
             return "VERB";
         default:

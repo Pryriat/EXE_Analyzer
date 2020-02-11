@@ -1,0 +1,22 @@
+﻿  pch.cpp
+  dllmain.cpp
+D:\Projects\EXE_Analyzer\CppBased\packages\EasyHookNativePackage.2.7.7097\build\native\include\easyhook.h(39,1): warning C4005: “NTDDI_VERSION”: 宏重定义
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.18362.0\shared\sdkddkver.h(227): message : 参见“NTDDI_VERSION”的前一个定义
+D:\Projects\EXE_Analyzer\CppBased\packages\EasyHookNativePackage.2.7.7097\build\native\include\easyhook.h(40,1): warning C4005: “_WIN32_WINNT”: 宏重定义
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.18362.0\shared\sdkddkver.h(217): message : 参见“_WIN32_WINNT”的前一个定义
+D:\Projects\EXE_Analyzer\CppBased\Headers\MyProcessApi.h(40,12): warning C4353: 使用了非标准扩展: 常量 0 作为了函数表达式。 请改用“__noop”内部函数
+D:\Projects\EXE_Analyzer\CppBased\Headers\MyProcessApi.h(71,12): warning C4353: 使用了非标准扩展: 常量 0 作为了函数表达式。 请改用“__noop”内部函数
+D:\Projects\EXE_Analyzer\CppBased\Headers\MyProcessApi.h(95,73): warning C4311: “reinterpret_cast”: 从“LPTHREAD_START_ROUTINE”到“ULONG”的指针截断
+D:\Projects\EXE_Analyzer\CppBased\Headers\MyProcessApi.h(95,73): warning C4302: “reinterpret_cast”: 从“LPTHREAD_START_ROUTINE”到“ULONG”截断
+D:\Projects\EXE_Analyzer\CppBased\Headers\MyProcessApi.h(98,71): warning C4311: “reinterpret_cast”: 从“LPTHREAD_START_ROUTINE”到“ULONG”的指针截断
+D:\Projects\EXE_Analyzer\CppBased\Headers\MyProcessApi.h(98,71): warning C4302: “reinterpret_cast”: 从“LPTHREAD_START_ROUTINE”到“ULONG”截断
+D:\Projects\EXE_Analyzer\CppBased\Headers\MyProcessApi.h(117,75): warning C4311: “reinterpret_cast”: 从“LPTHREAD_START_ROUTINE”到“ULONG”的指针截断
+D:\Projects\EXE_Analyzer\CppBased\Headers\MyProcessApi.h(117,75): warning C4302: “reinterpret_cast”: 从“LPTHREAD_START_ROUTINE”到“ULONG”截断
+D:\Projects\EXE_Analyzer\CppBased\Headers\MyProcessApi.h(120,71): warning C4311: “reinterpret_cast”: 从“LPTHREAD_START_ROUTINE”到“ULONG”的指针截断
+D:\Projects\EXE_Analyzer\CppBased\Headers\MyProcessApi.h(120,71): warning C4302: “reinterpret_cast”: 从“LPTHREAD_START_ROUTINE”到“ULONG”截断
+D:\Projects\EXE_Analyzer\CppBased\Headers\MyProcessApi.h(136,75): warning C4311: “reinterpret_cast”: 从“LPTHREAD_START_ROUTINE”到“ULONG”的指针截断
+D:\Projects\EXE_Analyzer\CppBased\Headers\MyProcessApi.h(136,75): warning C4302: “reinterpret_cast”: 从“LPTHREAD_START_ROUTINE”到“ULONG”截断
+D:\Projects\EXE_Analyzer\CppBased\Headers\MyProcessApi.h(139,71): warning C4311: “reinterpret_cast”: 从“LPTHREAD_START_ROUTINE”到“ULONG”的指针截断
+D:\Projects\EXE_Analyzer\CppBased\Headers\MyProcessApi.h(139,71): warning C4302: “reinterpret_cast”: 从“LPTHREAD_START_ROUTINE”到“ULONG”截断
+    正在创建库 D:\Projects\EXE_Analyzer\CppBased\x64\Debug\hook.lib 和对象 D:\Projects\EXE_Analyzer\CppBased\x64\Debug\hook.exp
+  hook.vcxproj -> D:\Projects\EXE_Analyzer\CppBased\x64\Debug\hook.dll
