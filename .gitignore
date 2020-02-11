@@ -1,2 +1,12 @@
 
 *.vcxproj
+*.obj
+*.obj
+CppBased/hook/x64/Debug/hook.log
+CppBased/hook/x64/Debug/dllmain.obj
+CppBased/hook/x64/Debug/hook.tlog/CL.command.1.tlog
+CppBased/hook/x64/Debug/hook.tlog/CL.read.1.tlog
+*.lastbuildstate
+CppBased/hook/x64/Debug/hook.tlog/link.command.1.tlog
+*.pdb
+*.tlog

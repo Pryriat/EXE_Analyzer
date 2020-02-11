@@ -1,7 +1,10 @@
-/Debug
-/packages
-/x64
-/lib
+/Debug/*
+/packages/*
+/x64/*
+/lib/*
+/hook/x64/*
+/hook/Debug/*
+/lib/*
 *.dll
 *.exe
 *.sln
@@ -9,4 +12,4 @@
 *.filters
 *.user
 *.config
-/.vs
+/.vs/*
