@@ -14,7 +14,10 @@
 - [ ] 杂项API调用跟踪
 - [ ] 基于PyQt5的GUI
 
-# 构建中，示例输出
+# 文件嗅探
+![](https://github.com/Pryriat/EXE_Analyzer/blob/master/Image/Copy_On_Write.png)
+
+# 示例输出
 ![](https://github.com/Pryriat/EXE_Analyzer/blob/master/Image/ScreenShot.png)
 
 
