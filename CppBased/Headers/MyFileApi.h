@@ -6,10 +6,10 @@ using std::map;
 using std::wstring;
 using std::vector;
 
-map<HANDLE, wstring>FileMap;
+
 
 BOOL FileApiEnable = true;
-
+std::wstring FilePrefix = L"C:\\Users\\hjc98\\Desktop\\";
 vector<wstring> FileFilter = { L"my.log", L"MountPointManager" };
 
 HOOK_TRACE_INFO WaitForSingleObjectExHook;
@@ -45,6 +45,12 @@ inline bool FILTER_FILE_JUD(const wstring& in)
 	return false;
 }
 
+inline bool WRITE_FILE_JUD(const DWORD& in)
+{
+	return (in == GENERIC_ALL) || (in == GENERIC_WRITE) || (in == GENERIC_READ | GENERIC_WRITE)
+		|| (in == GENERIC_EXECUTE | GENERIC_WRITE) || (in == GENERIC_EXECUTE | GENERIC_READ | GENERIC_WRITE);
+}
+
 HANDLE WINAPI MyCreateFileW(
 	LPCWSTR               lpFileName,
 	DWORD                 dwDesiredAccess,
@@ -56,9 +62,14 @@ HANDLE WINAPI MyCreateFileW(
 )
 {
 	//PLOGD << L"CreateFileW->"<<lpFileName<<" ";
-	HANDLE rtn = CreateFileW(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
 	std::wstring c((TCHAR*)sc(lpFileName));
-	FileMap[rtn] = c;
+	HANDLE rtn = CreateFileW(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+	if (rtn && !FILTER_FILE_JUD(c))
+	{
+		FileMap[rtn] = c;
+		if(WRITE_FILE_JUD(dwDesiredAccess))
+			WriteFileMap[rtn] = { &FileMap[rtn], dwDesiredAccess, dwCreationDisposition, dwFlagsAndAttributes };
+	}
 	//if( c.find(L"my.log") == c.npos && c.find(L"MountPointManager") == c.npos)
 		//PLOGD << L"CreateFileW->FileName:" << c<<", FileHandle:" << rtn<<std::endl;
 	return rtn;
@@ -74,9 +85,14 @@ HANDLE WINAPI MyCreateFileA(
 	HANDLE                hTemplateFile
 )
 {
+	std::wstring c = std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(sc(lpFileName));
 	HANDLE rtn = CreateFileA(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
-	std::string c((CHAR*)sc(lpFileName));
-	FileMap[rtn] = std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(c);
+	if (rtn && !FILTER_FILE_JUD(c))
+	{
+		FileMap[rtn] = c;
+		if (WRITE_FILE_JUD(dwDesiredAccess))
+			WriteFileMap[rtn] = { &FileMap[rtn], dwDesiredAccess, dwCreationDisposition, dwFlagsAndAttributes };
+	}
 	//if (c.find("my.log") == c.npos && c.find("MountPointManager") == c.npos)
 		//PLOGD << L"CreateFileA->FileName:" << c << ", FileHandle:" << rtn<<std::endl;
 	return rtn;
@@ -147,6 +163,23 @@ BOOL WINAPI MyWriteFile(
 	}
 	else
 		c = FileMap[hFile];
+	if (rtn)
+	{
+		if (WriteFileMap.find(hFile) != WriteFileMap.end())
+		{
+			WT* tmp = &WriteFileMap[hFile];
+			DWORD written = 0;
+			wstring TargetFile = FilePrefix + tmp->lpFileName->substr(tmp->lpFileName->find_last_of('\\') + 1);
+			HANDLE track = CreateFileW(tmp->lpFileName->c_str(), tmp->dwDesiredAccess, 0, NULL, tmp->dwCreationDisposition, tmp->dwFlagsAndAttributes, NULL);
+			if (track == NULL)
+				PLOGD << "TrackWriteFileError:" << RtlGetLastErrorString() << endl;
+			else
+				if (WriteFile(track, lpBuffer, nNumberOfBytesToWrite, &written, NULL) == FALSE)
+					PLOGD << "TrackWriteFileError:" << RtlGetLastErrorString()<<endl;
+				else
+					PLOGD << "TrackWriteFileSuccess:" << TargetFile<<endl;
+		}
+	}
 	if (c.find(L"my.log") == c.npos && c.find(L"MountPointManager") == c.npos)
 		PLOGD << "WriteFile->FileName:" << c
 		<< ", NumberOfBytesWritten:" << *lpNumberOfBytesWritten

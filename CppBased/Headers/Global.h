@@ -16,6 +16,15 @@
 #pragma  comment(lib,"Psapi.lib")
 #define MAX_PATH 260
 
+struct WT
+{
+	std::wstring*               lpFileName;
+	DWORD                 dwDesiredAccess;
+	DWORD                 dwCreationDisposition;
+	DWORD                 dwFlagsAndAttributes;
+};
+std::map<HANDLE, std::wstring> FileMap;
+std::map<HANDLE, WT> WriteFileMap;
 std::string cn = "None";
 std::wstring wn = L"None";
 std::wstring inline GetLastErrorAsString(DWORD ErrorCode)
