@@ -10,7 +10,7 @@ map<HANDLE, wstring> InternetOpenHandleMap;
 map<HANDLE, wstring> InternetFileHandleMap;
 map<HANDLE, wstring> FtpSessionMap;
 map<HANDLE, wstring> HttpSessionMap;
-map<HANDLE, wstring>HttpRequestMap;
+map<HANDLE, wstring> HttpRequestMap;
 
 HOOK_TRACE_INFO InternetOpenAHook;
 HOOK_TRACE_INFO InternetOpenWHook;

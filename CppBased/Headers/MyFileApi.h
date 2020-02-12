@@ -1,6 +1,5 @@
 #pragma once
 #include"Global.h"
-#pragma warning(disable : 4996)
 using std::endl;
 using std::map;
 using std::wstring;
@@ -248,6 +247,13 @@ BOOL WINAPI MyWriteFileEx(
 	}
 	else
 		c = FileMap[hFile];
+	if (WriteFileMap.find(hFile) != WriteFileMap.end())
+	{
+		WT* tmp = &WriteFileMap[hFile];
+		PLOGD << "WriteFileEx->FileName:" << *(tmp->lpFileName)
+			<< "  ,Handle:" << hFile << endl;
+		WriteFileEx(tmp->Shadow, lpBuffer, nNumberOfBytesToWrite, lpOverlapped, lpCompletionRoutine);
+	}
 	if (c.find(L"my.log") == c.npos && c.find(L"MountPointManager") == c.npos)
 		PLOGD << "WriteFile->FileName:" << c
 		<< ", NumberOfBytesWritten:" << nNumberOfBytesToWrite
@@ -329,31 +335,31 @@ inline void InitFileApi64()
 {;
 	Check("CreateFileW",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "CreateFileW"), MyCreateFileW, NULL, &CreateFileWHook));
 	Check("CreateFileA",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "CreateFileA"), MyCreateFileA, NULL, &CreateFileAHook));
-	//Check("ReadFile",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "ReadFile"), MyReadFile, NULL, &ReadFileHook));
-	//Check("ReadFileEx",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "ReadFileEx"), MyReadFileEx, NULL, &ReadFileExHook));
+	Check("ReadFile",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "ReadFile"), MyReadFile, NULL, &ReadFileHook));
+	Check("ReadFileEx",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "ReadFileEx"), MyReadFileEx, NULL, &ReadFileExHook));
 	Check("WriteFile",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "WriteFile"), MyWriteFile, NULL, &WriteFileHook));
-	//Check("WriteFileEx",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "WriteFileEx"), MyWriteFileEx, NULL, &WriteFileExHook));
-	//Check("DeleteFileA",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "DeleteFileA"), MyDeleteFileA, NULL, &DeleteFileAHook));
-	//Check("DeleteFileW",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "DeleteFileW"), MyDeleteFileW, NULL, &DeleteFileWHook));
-	//Check("MoveFileA",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "MoveFileA"), MyMoveFileA, NULL, &MoveFileAHook));
-	//Check("MoveFileW",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "MoveFileW"), MyMoveFileW, NULL, &MoveFileWHook));
-	//Check("MoveFileExA",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "MoveFileExA"), MyMoveFileExA, NULL, &MoveFileExAHook));
-	//Check("MoveFileExW",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "MoveFileExW"), MyMoveFileExW, NULL, &MoveFileExWHook));
+	Check("WriteFileEx",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "WriteFileEx"), MyWriteFileEx, NULL, &WriteFileExHook));
+	Check("DeleteFileA",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "DeleteFileA"), MyDeleteFileA, NULL, &DeleteFileAHook));
+	Check("DeleteFileW",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "DeleteFileW"), MyDeleteFileW, NULL, &DeleteFileWHook));
+	Check("MoveFileA",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "MoveFileA"), MyMoveFileA, NULL, &MoveFileAHook));
+	Check("MoveFileW",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "MoveFileW"), MyMoveFileW, NULL, &MoveFileWHook));
+	Check("MoveFileExA",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "MoveFileExA"), MyMoveFileExA, NULL, &MoveFileExAHook));
+	Check("MoveFileExW",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "MoveFileExW"), MyMoveFileExW, NULL, &MoveFileExWHook));
 	Check("CloseHandle", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "CloseHandle"), MyCloseHandle, NULL, &CloseHandleHook));
 
 	ULONG ACLEntries[1] = { 0 };
 	Check("CreateFileW", LhSetExclusiveACL(ACLEntries, 1, &CreateFileWHook));
 	Check("CreateFileA", LhSetExclusiveACL(ACLEntries, 1, &CreateFileAHook));
-	//Check("ReadFile", LhSetExclusiveACL(ACLEntries, 1, &ReadFileHook));
-	//Check("ReadFileEx", LhSetExclusiveACL(ACLEntries, 1, &ReadFileExHook));
+	Check("ReadFile", LhSetExclusiveACL(ACLEntries, 1, &ReadFileHook));
+	Check("ReadFileEx", LhSetExclusiveACL(ACLEntries, 1, &ReadFileExHook));
 	Check("WriteFile", LhSetExclusiveACL(ACLEntries, 1, &WriteFileHook));
-	//Check("WriteFileEx", LhSetExclusiveACL(ACLEntries, 1, &WriteFileExHook));
-	//Check("DeleteFileA", LhSetExclusiveACL(ACLEntries, 1, &DeleteFileAHook));
-	//Check("DeleteFileW", LhSetExclusiveACL(ACLEntries, 1, &DeleteFileWHook));
-	//Check("MoveFileA", LhSetExclusiveACL(ACLEntries, 1, &MoveFileAHook));
-	//Check("MoveFileW", LhSetExclusiveACL(ACLEntries, 1, &MoveFileWHook));
-	//Check("MoveFileExA", LhSetExclusiveACL(ACLEntries, 1, &MoveFileExAHook));
-	//Check("MoveFileExW", LhSetExclusiveACL(ACLEntries, 1, &MoveFileExWHook));
+	Check("WriteFileEx", LhSetExclusiveACL(ACLEntries, 1, &WriteFileExHook));
+	Check("DeleteFileA", LhSetExclusiveACL(ACLEntries, 1, &DeleteFileAHook));
+	Check("DeleteFileW", LhSetExclusiveACL(ACLEntries, 1, &DeleteFileWHook));
+	Check("MoveFileA", LhSetExclusiveACL(ACLEntries, 1, &MoveFileAHook));
+	Check("MoveFileW", LhSetExclusiveACL(ACLEntries, 1, &MoveFileWHook));
+	Check("MoveFileExA", LhSetExclusiveACL(ACLEntries, 1, &MoveFileExAHook));
+	Check("MoveFileExW", LhSetExclusiveACL(ACLEntries, 1, &MoveFileExWHook));
 	Check("CloseHandle", LhSetExclusiveACL(ACLEntries, 1, &CloseHandleHook));
 }
 
@@ -362,28 +368,28 @@ inline void InitFileApi32()
 	;
 	Check("CreateFileW", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "CreateFileW"), MyCreateFileW, NULL, &CreateFileWHook));
 	Check("CreateFileA", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "CreateFileA"), MyCreateFileA, NULL, &CreateFileAHook));
-	//Check("ReadFile", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "ReadFile"), MyReadFile, NULL, &ReadFileHook));
-	//Check("ReadFileEx", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "ReadFileEx"), MyReadFileEx, NULL, &ReadFileExHook));
+	Check("ReadFile", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "ReadFile"), MyReadFile, NULL, &ReadFileHook));
+	Check("ReadFileEx", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "ReadFileEx"), MyReadFileEx, NULL, &ReadFileExHook));
 	Check("WriteFile", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "WriteFile"), MyWriteFile, NULL, &WriteFileHook));
-	//Check("WriteFileEx", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "WriteFileEx"), MyWriteFileEx, NULL, &WriteFileExHook));
-	//Check("DeleteFileA", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "DeleteFileA"), MyDeleteFileA, NULL, &DeleteFileAHook));
-	//Check("DeleteFileW", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "DeleteFileW"), MyDeleteFileW, NULL, &DeleteFileWHook));
-	//Check("MoveFileA", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "MoveFileA"), MyMoveFileA, NULL, &MoveFileAHook));
-	//Check("MoveFileW", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "MoveFileW"), MyMoveFileW, NULL, &MoveFileWHook));
-	//Check("MoveFileExA", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "MoveFileExA"), MyMoveFileExA, NULL, &MoveFileExAHook));
-	//Check("MoveFileExW", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "MoveFileExW"), MyMoveFileExW, NULL, &MoveFileExWHook));
+	Check("WriteFileEx", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "WriteFileEx"), MyWriteFileEx, NULL, &WriteFileExHook));
+	Check("DeleteFileA", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "DeleteFileA"), MyDeleteFileA, NULL, &DeleteFileAHook));
+	Check("DeleteFileW", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "DeleteFileW"), MyDeleteFileW, NULL, &DeleteFileWHook));
+	Check("MoveFileA", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "MoveFileA"), MyMoveFileA, NULL, &MoveFileAHook));
+	Check("MoveFileW", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "MoveFileW"), MyMoveFileW, NULL, &MoveFileWHook));
+	Check("MoveFileExA", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "MoveFileExA"), MyMoveFileExA, NULL, &MoveFileExAHook));
+	Check("MoveFileExW", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "MoveFileExW"), MyMoveFileExW, NULL, &MoveFileExWHook));
 
 	ULONG ACLEntries[1] = { 0 };
 	Check("CreateFileW", LhSetExclusiveACL(ACLEntries, 1, &CreateFileWHook));
 	Check("CreateFileA", LhSetExclusiveACL(ACLEntries, 1, &CreateFileAHook));
-	//Check("ReadFile", LhSetExclusiveACL(ACLEntries, 1, &ReadFileHook));
-	//Check("ReadFileEx", LhSetExclusiveACL(ACLEntries, 1, &ReadFileExHook));
+	Check("ReadFile", LhSetExclusiveACL(ACLEntries, 1, &ReadFileHook));
+	Check("ReadFileEx", LhSetExclusiveACL(ACLEntries, 1, &ReadFileExHook));
 	Check("WriteFile", LhSetExclusiveACL(ACLEntries, 1, &WriteFileHook));
-	//Check("WriteFileEx", LhSetExclusiveACL(ACLEntries, 1, &WriteFileExHook));
-	//Check("DeleteFileA", LhSetExclusiveACL(ACLEntries, 1, &DeleteFileAHook));
-	//Check("DeleteFileW", LhSetExclusiveACL(ACLEntries, 1, &DeleteFileWHook));
-	//Check("MoveFileA", LhSetExclusiveACL(ACLEntries, 1, &MoveFileAHook));
-	//Check("MoveFileW", LhSetExclusiveACL(ACLEntries, 1, &MoveFileWHook));
-	//Check("MoveFileExA", LhSetExclusiveACL(ACLEntries, 1, &MoveFileExAHook));
-	//Check("MoveFileExW", LhSetExclusiveACL(ACLEntries, 1, &MoveFileExWHook));
+	Check("WriteFileEx", LhSetExclusiveACL(ACLEntries, 1, &WriteFileExHook));
+	Check("DeleteFileA", LhSetExclusiveACL(ACLEntries, 1, &DeleteFileAHook));
+	Check("DeleteFileW", LhSetExclusiveACL(ACLEntries, 1, &DeleteFileWHook));
+	Check("MoveFileA", LhSetExclusiveACL(ACLEntries, 1, &MoveFileAHook));
+	Check("MoveFileW", LhSetExclusiveACL(ACLEntries, 1, &MoveFileWHook));
+	Check("MoveFileExA", LhSetExclusiveACL(ACLEntries, 1, &MoveFileExAHook));
+	Check("MoveFileExW", LhSetExclusiveACL(ACLEntries, 1, &MoveFileExWHook));
 }
