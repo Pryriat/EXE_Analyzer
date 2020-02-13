@@ -5,7 +5,8 @@
 #include"MyProcessApi.h"
 #include"MyWinNetApi.h"
 #include"MyRegApi.h"
-
+#include"MyServiceApi.h"
+MyServiceApi ServiceApi;
 
 DWORD gFreqOffset = 0;
 extern "C" void __declspec(dllexport) __stdcall NativeInjectionEntryPoint(REMOTE_ENTRY_INFO * inRemoteInfo);
@@ -13,10 +14,11 @@ extern "C" void __declspec(dllexport) __stdcall NativeInjectionEntryPoint(REMOTE
 void __stdcall NativeInjectionEntryPoint(REMOTE_ENTRY_INFO* inRemoteInfo)
 {
 	plog::init(plog::debug, "C:\\Users\\hjc98\\Desktop\\my.log"); 
-	InitFileApi64();
-	InitProcessApi64();
-	InitWinNetApi64();
-	InitRegApi();
+	//InitFileApi64();
+	//InitProcessApi64();
+	//InitWinNetApi64();
+	//InitRegApi();
+	MyServiceApiInit();
 	// If the threadId in the ACL is set to 0,
 	// then internally EasyHook uses GetCurrentThreadId()
 

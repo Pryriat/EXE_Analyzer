@@ -26,8 +26,8 @@ int wmain(int argc, wchar_t** argv)
 	WCHAR* dllToInject = const_cast<WCHAR*>(L".\\x64\\Debug\\hook.dll");
 	WCHAR* dllToInject32 = const_cast<WCHAR*>(L".\\Debug\\hook.dll");
 	ULONG proc;
-	//NTSTATUS nt = RhCreateAndInject(const_cast<WCHAR*>(L"C:\\Program Files\\Bandizip\\Bandizip.exe"), const_cast<WCHAR*>(L""), CREATE_NEW_CONSOLE, EASYHOOK_INJECT_DEFAULT, NULL, dllToInject, NULL, 0, &proc);
-	NTSTATUS nt = RhCreateAndInject(const_cast<WCHAR*>(L"C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE"), const_cast<WCHAR*>(L""), CREATE_NEW_CONSOLE, EASYHOOK_INJECT_DEFAULT, dllToInject32, dllToInject, NULL, 0, &proc);
+	NTSTATUS nt = RhCreateAndInject(const_cast<WCHAR*>(L"C:\\Program Files\\Bandizip\\Bandizip.exe"), const_cast<WCHAR*>(L""), CREATE_NEW_CONSOLE, EASYHOOK_INJECT_DEFAULT, NULL, dllToInject, NULL, 0, &proc);
+	//NTSTATUS nt = RhCreateAndInject(const_cast<WCHAR*>(L"C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE"), const_cast<WCHAR*>(L""), CREATE_NEW_CONSOLE, EASYHOOK_INJECT_DEFAULT, dllToInject32, dllToInject, NULL, 0, &proc);
 	//NTSTATUS nt = RhCreateAndInject(const_cast<WCHAR*>(L"D:\\Program Files\\Typora\\Typora.exe"), const_cast<WCHAR*>(L""), CREATE_NEW_CONSOLE, EASYHOOK_INJECT_DEFAULT, dllToInject32, dllToInject, NULL, 0, &proc);
 	if (nt != 0)
 	{

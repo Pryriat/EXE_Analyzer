@@ -14,6 +14,11 @@
 #include<plog/Record.h>
 #pragma  comment(lib,"Wininet.lib")
 #pragma  comment(lib,"Psapi.lib")
+#if _WIN64
+#pragma comment(lib, "EasyHook64_dbg.lib")
+#else
+#pragma comment(lib, "EasyHook32_dbg.lib")
+#endif
 #define MAX_PATH 260
 
 struct WT
