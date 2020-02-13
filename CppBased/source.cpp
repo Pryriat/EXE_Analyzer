@@ -5,6 +5,7 @@
 #include<easyhook.h>
 #include"Headers/Event.h"
 #include"Headers/Exception.h"
+#include"MyProcessApi.h"
 
 using std::wcout;
 using std::endl;
@@ -21,12 +22,21 @@ int filter(unsigned int code, struct _EXCEPTION_POINTERS* ep)
 	return DBG_EXCEPTION_NOT_HANDLED;
 }
 
+void output(std::wstring in)
+{
+	std::wcout << in << endl;
+}
+
 int wmain(int argc, wchar_t** argv) 
 {
+	
+	MyProcessApi PC;
+	MyProcessApi::init_func(output);
+	wcout<< "Na:"<<PC.out<<"  "<<&PC<<endl;
 	WCHAR* dllToInject = const_cast<WCHAR*>(L".\\x64\\Debug\\hook.dll");
 	WCHAR* dllToInject32 = const_cast<WCHAR*>(L".\\Debug\\hook.dll");
 	ULONG proc;
-	NTSTATUS nt = RhCreateAndInject(const_cast<WCHAR*>(L"C:\\Program Files\\Bandizip\\Bandizip.exe"), const_cast<WCHAR*>(L""), CREATE_NEW_CONSOLE, EASYHOOK_INJECT_DEFAULT, NULL, dllToInject, NULL, 0, &proc);
+	NTSTATUS nt = RhCreateAndInject(const_cast<WCHAR*>(L"C:\\Program Files\\Bandizip\\Bandizip.exe"), const_cast<WCHAR*>(L""), CREATE_NEW_CONSOLE, EASYHOOK_INJECT_DEFAULT, NULL, dllToInject, &PC, sizeof(PVOID), &proc);
 	//NTSTATUS nt = RhCreateAndInject(const_cast<WCHAR*>(L"C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE"), const_cast<WCHAR*>(L""), CREATE_NEW_CONSOLE, EASYHOOK_INJECT_DEFAULT, dllToInject32, dllToInject, NULL, 0, &proc);
 	//NTSTATUS nt = RhCreateAndInject(const_cast<WCHAR*>(L"D:\\Program Files\\Typora\\Typora.exe"), const_cast<WCHAR*>(L""), CREATE_NEW_CONSOLE, EASYHOOK_INJECT_DEFAULT, dllToInject32, dllToInject, NULL, 0, &proc);
 	if (nt != 0)
@@ -39,7 +49,6 @@ int wmain(int argc, wchar_t** argv)
 	{
 		std::wcout << L"Library injected successfully.\n";
 	}
-
 	std::wcout << "Press Enter to exit";
 	std::wstring input;
 	std::getline(std::wcin, input);

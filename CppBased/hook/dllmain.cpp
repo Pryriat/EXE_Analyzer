@@ -13,12 +13,15 @@ extern "C" void __declspec(dllexport) __stdcall NativeInjectionEntryPoint(REMOTE
 
 void __stdcall NativeInjectionEntryPoint(REMOTE_ENTRY_INFO* inRemoteInfo)
 {
-	plog::init(plog::debug, "C:\\Users\\hjc98\\Desktop\\my.log"); 
+	plog::init(plog::debug, "C:\\Users\\hjc98\\Desktop\\my.log");
+	MyProcessApi* HC = (MyProcessApi*)(inRemoteInfo->UserData);
+	PLOGD << "DL:"<<HC->out<<"  "<<HC<<endl;
+	HC->InitProcessApi64();
 	//InitFileApi64();
 	//InitProcessApi64();
 	//InitWinNetApi64();
 	//InitRegApi();
-	MyServiceApiInit();
+	//ServiceApi.MyServiceApiInit();
 	// If the threadId in the ACL is set to 0,
 	// then internally EasyHook uses GetCurrentThreadId()
 
