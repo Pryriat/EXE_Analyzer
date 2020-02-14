@@ -98,6 +98,7 @@ public:
         MyProcessApi::out = func;
     }
     static inline void InitProcessApi64();
+    static inline void InitProcessApi32();
 };
 
 Level MyProcessApi::Lv = Debug;
@@ -137,7 +138,7 @@ BOOL WINAPI MyProcessApi::MyCreateProcessA(
             << ", Status:" << rtn << endl;
     if (rtn)
     {
-        NTSTATUS nt = RhInjectLibrary(lpProcessInformation->dwProcessId, 0, EASYHOOK_INJECT_DEFAULT, NULL, const_cast<WCHAR*>(L".\\x64\\Debug\\hook.dll"), NULL, 0);
+        NTSTATUS nt = RhInjectLibrary(lpProcessInformation->dwProcessId, 0, EASYHOOK_INJECT_DEFAULT, const_cast<WCHAR*>(L".\\Debug\\hook.dll"), const_cast<WCHAR*>(L".\\x64\\Debug\\hook.dll"), NULL, 0);
         if (ERROR(nt))
             PLOGD << RtlGetLastErrorString() << endl;
         else
@@ -165,7 +166,7 @@ BOOL WINAPI MyProcessApi::MyCreateProcessW(
         bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
     if (rtn)
     {
-        NTSTATUS nt = RhInjectLibrary(lpProcessInformation->dwProcessId, 0, EASYHOOK_INJECT_DEFAULT, NULL, const_cast<WCHAR*>(L".\\x64\\Debug\\hook.dll"), NULL, 0);
+        NTSTATUS nt = RhInjectLibrary(lpProcessInformation->dwProcessId, 0, EASYHOOK_INJECT_DEFAULT, const_cast<WCHAR*>(L".\\Debug\\hook.dll"), const_cast<WCHAR*>(L".\\x64\\Debug\\hook.dll"), NULL, 0);
         if (Lv > None)
             PLOGD << "CreateProcessW->AppName:" << sc(lpApplicationName)
                 << ", Commandline:" << sc(lpCommandLine)
@@ -176,8 +177,6 @@ BOOL WINAPI MyProcessApi::MyCreateProcessW(
         {
             PLOGD << "Dll Injiect to New Process Success"<<endl;
         }
-        //void (*fp)(std::wstring in) = reinterpret_cast<void (*) (std::wstring in)>(MyProcessApi::out);
-        //fp((lpApplicationName));
     }
     return rtn;
 }
@@ -222,8 +221,6 @@ HANDLE WINAPI MyProcessApi::MyCreateRemoteThreadEx(
     else if(Lv > None)
         PLOGD << "CreateRemoteThreadEx->TargetApp:" << GetProcessNameByHandle(hProcess)
         << ", StartAddress:" << reinterpret_cast<ULONG>(lpStartAddress) << endl;
-   //void (*fp)(std::wstring in) = reinterpret_cast<void (*) (std::wstring in)>(MyProcessApi::out);
-   //fp(GetProcessNameByHandle(hProcess));
     return rtn;
 }
 
@@ -259,8 +256,6 @@ HANDLE WINAPI MyProcessApi::MyOpenProcess(
         if (dwProcessId != GetCurrentProcessId() && c.size()>0 && Lv>Critial)
             PLOGD << "OpenProcess->TargetApp:" << c << endl;
     }
-    //void (*fp)(std::wstring in) = reinterpret_cast<void (*) (std::wstring in)>(MyProcessApi::out);
-    //fp(GetProcessNameByHandle(rtn));
     return rtn;
 }
 
@@ -321,7 +316,7 @@ inline void MyProcessApi::InitProcessApi64()
     Check("TerminateThread" ,LhSetExclusiveACL(ACLEntries, 1, &MyProcessApi::TerminateThreadHook));
 }
 
-inline void InitProcessApi32()
+inline void MyProcessApi::InitProcessApi32()
 {
     Check("CreateProcessA", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "CreateProcessA"), MyProcessApi::MyCreateProcessA, NULL, &MyProcessApi::CreateProcessAHook));
     Check("CreateProcessW", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "CreateProcessW"), MyProcessApi::MyCreateProcessW, NULL, &MyProcessApi::CreateProcessWHook));

@@ -162,6 +162,8 @@ BOOL WINAPI MyFileApi::MyCloseHandle(
 	HANDLE hObject
 )
 {
+	if (FileMap.find(hObject) != FileMap.end())
+		FileMap.erase(hObject);
 	if (WriteFileMap.find(hObject) != WriteFileMap.end())
 	{
 		if(Lv>Extra)
@@ -190,19 +192,22 @@ HANDLE WINAPI MyFileApi::MyCreateFileW(
 		if (WRITE_FILE_JUD(dwDesiredAccess))
 		{
 			std::wstring tmp = FilePrefix + c.substr(c.find_last_of('\\') + 1);
+			/*
 			HANDLE shadow = CreateFileW(tmp.c_str(), dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
 			if (shadow != INVALID_HANDLE_VALUE)
 			{
 				if(Lv > Critial)
 					WriteFileMap[rtn] = { &FileMap[rtn], dwDesiredAccess, dwShareMode, dwCreationDisposition, dwFlagsAndAttributes, shadow };
-				if(Lv>Extra)
-					PLOGD << "CreateFileW->FileName:" << c
-						<< ",  Handle:" << rtn
-						<< ", dwDesiredAccess:" << dwDesiredAccess
-						<< ",  dwShareMode:" << dwShareMode
-						<< ",  dwCreationDisposition:" << dwCreationDisposition
-						<< ",  dwFlagsAndAttributes:" << dwFlagsAndAttributes << endl;
+				
 			}
+			*/
+			if (Lv > Extra)
+				PLOGD << "CreateFileW->FileName:" << c
+				<< ",  Handle:" << rtn
+				<< ", dwDesiredAccess:" << dwDesiredAccess
+				<< ",  dwShareMode:" << dwShareMode
+				<< ",  dwCreationDisposition:" << dwCreationDisposition
+				<< ",  dwFlagsAndAttributes:" << dwFlagsAndAttributes << endl;
 		}
 	}
 	return rtn;
@@ -227,18 +232,20 @@ HANDLE WINAPI MyFileApi::MyCreateFileA(
 		{
 			std::wstring tmp = FilePrefix + c.substr(c.find_last_of('\\') + 1);
 			HANDLE shadow = CreateFileW(tmp.c_str(), dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+			/*
 			if (shadow != INVALID_HANDLE_VALUE)
 			{
 				if (Lv > Critial)
 					WriteFileMap[rtn] = { &FileMap[rtn], dwDesiredAccess, dwShareMode, dwCreationDisposition, dwFlagsAndAttributes, shadow };
-				if (Lv > Extra)
-					PLOGD << "CreateFileW->FileName:" << c
-						<< ",  Handle:" << rtn
-						<< ", dwDesiredAccess:" << dwDesiredAccess
-						<< ",  dwShareMode:" << dwShareMode
-						<< ",  dwCreationDisposition:" << dwCreationDisposition
-						<< ",  dwFlagsAndAttributes:" << dwFlagsAndAttributes << endl;
 			}
+			*/
+			if (Lv > Extra)
+				PLOGD << "CreateFileW->FileName:" << c
+				<< ",  Handle:" << rtn
+				<< ", dwDesiredAccess:" << dwDesiredAccess
+				<< ",  dwShareMode:" << dwShareMode
+				<< ",  dwCreationDisposition:" << dwCreationDisposition
+				<< ",  dwFlagsAndAttributes:" << dwFlagsAndAttributes << endl;
 		}
 	}
 	return rtn;
@@ -310,8 +317,14 @@ BOOL WINAPI MyFileApi::MyWriteFile(
 		if(Lv > None)
 			PLOGD << "WriteFile->FileName:" << *(tmp->lpFileName)
 				<< "  ,Handle:" << hFile << endl;
-		if(Lv > Critial )
-			WriteFile(tmp->Shadow, lpBuffer, nNumberOfBytesToWrite, lpNumberOfBytesWritten, lpOverlapped);
+		//if(Lv > Critial )
+			//WriteFile(tmp->Shadow, lpBuffer, nNumberOfBytesToWrite, lpNumberOfBytesWritten, lpOverlapped);
+	}
+	else if (FileMap.find(hFile) != FileMap.end())
+	{
+		if (Lv > None)
+			PLOGD << "WriteFile->FileName:" << FileMap[hFile]
+				<< "  ,Handle:" << hFile << endl;
 	}
 	/*
 	if (FileMap.find(hFile) == FileMap.end())
@@ -369,8 +382,14 @@ BOOL WINAPI MyFileApi::MyWriteFileEx(
 		if(Lv > None)
 			PLOGD << "WriteFileEx->FileName:" << *(tmp->lpFileName)
 				<< "  ,Handle:" << hFile << endl;
-		if(Lv > Critial)
-			WriteFileEx(tmp->Shadow, lpBuffer, nNumberOfBytesToWrite, lpOverlapped, lpCompletionRoutine);
+		//if(Lv > Critial)
+			//WriteFileEx(tmp->Shadow, lpBuffer, nNumberOfBytesToWrite, lpOverlapped, lpCompletionRoutine);
+	}
+	else if (FileMap.find(hFile) != FileMap.end())
+	{
+		if (Lv > None)
+			PLOGD << "WriteFile->FileName:" << FileMap[hFile]
+			<< "  ,Handle:" << hFile << endl;
 	}
 	return rtn;
 }

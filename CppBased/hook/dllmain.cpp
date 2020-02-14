@@ -12,15 +12,17 @@ extern "C" void __declspec(dllexport) __stdcall NativeInjectionEntryPoint(REMOTE
 
 void __stdcall NativeInjectionEntryPoint(REMOTE_ENTRY_INFO* inRemoteInfo)
 {
-	plog::init(plog::debug, "C:\\Users\\hjc98\\Desktop\\my.log");
-	MyFileApi::SetLv(Critial);
-	MyProcessApi::SetLv(Critial);
-	MyWinNetApi::SetLv(Critial);
-	MyRegApi::SetLv(Critial);
-	MyFileApi::InitFileApi64();
-	MyProcessApi::InitProcessApi64();
+	std::string log_file = getenv("USERPROFILE");
+	log_file += "\\Desktop\\my.log";
+	plog::init(plog::debug, log_file.c_str());
+	MyFileApi::SetLv(Debug);
+	MyProcessApi::SetLv(Debug);
+	MyWinNetApi::SetLv(Debug);
+	MyRegApi::SetLv(Debug);
+	MyFileApi::InitFileApi32();
+	MyProcessApi::InitProcessApi32();
 	MyRegApi::InitRegApi();
-	MyWinNetApi::InitWinNetApi64();
+	MyWinNetApi::InitWinNetApi();
 	//InitFileApi64();
 	//InitProcessApi64();
 	//InitWinNetApi64();

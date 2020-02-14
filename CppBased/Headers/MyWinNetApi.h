@@ -37,7 +37,7 @@ public:
     {
         MyWinNetApi::Lv = Lv;
     }
-    static void InitWinNetApi64();
+    static void InitWinNetApi();
     static HINTERNET WINAPI MyInternetOpenA(
         LPCSTR lpszAgent,
         DWORD  dwAccessType,
@@ -621,7 +621,7 @@ BOOL WINAPI MyWinNetApi::MyHttpSendRequestExW(
 }
 
 
-void MyWinNetApi::InitWinNetApi64()
+void MyWinNetApi::InitWinNetApi()
 {
     Check("InternetOpenA", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "InternetOpenA"), MyWinNetApi::MyInternetOpenA, NULL, &MyWinNetApi::InternetOpenAHook));
     Check("InternetOpenW",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "InternetOpenW"), MyWinNetApi::MyInternetOpenW, NULL, &MyWinNetApi::InternetOpenWHook));
