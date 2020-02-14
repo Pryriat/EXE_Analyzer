@@ -20,7 +20,12 @@
 #pragma comment(lib, "EasyHook32_dbg.lib")
 #endif
 #define MAX_PATH 260
-
+enum Level
+{
+	None,
+	Cirtial,
+	Debug
+};
 struct WT
 {
 	std::wstring*               lpFileName;
@@ -30,8 +35,6 @@ struct WT
 	DWORD                 dwFlagsAndAttributes;
 	HANDLE                Shadow;
 };
-std::map<HANDLE, std::wstring> FileMap;
-std::map<HANDLE, WT> WriteFileMap;
 std::string cn = "None";
 std::wstring wn = L"None";
 std::wstring inline GetLastErrorAsString(DWORD ErrorCode)

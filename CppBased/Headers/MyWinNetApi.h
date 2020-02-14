@@ -4,33 +4,184 @@ using std::map;
 using std::wstring;
 using std::endl;
 
-BOOL WinNetApiEnable = TRUE;
+class MyWinNetApi
+{
+public:
+    static BOOL WinNetApiEnable;
 
-map<HANDLE, wstring> InternetOpenHandleMap;
-map<HANDLE, wstring> InternetFileHandleMap;
-map<HANDLE, wstring> FtpSessionMap;
-map<HANDLE, wstring> HttpSessionMap;
-map<HANDLE, wstring> HttpRequestMap;
+    static map<HANDLE, wstring> InternetOpenHandleMap;
+    static map<HANDLE, wstring> InternetFileHandleMap;
+    static map<HANDLE, wstring> FtpSessionMap;
+    static map<HANDLE, wstring> HttpSessionMap;
+    static map<HANDLE, wstring> HttpRequestMap;
 
-HOOK_TRACE_INFO InternetOpenAHook;
-HOOK_TRACE_INFO InternetOpenWHook;
-HOOK_TRACE_INFO InternetOpenUrlAHook;
-HOOK_TRACE_INFO InternetOpenUrlWHook;
-HOOK_TRACE_INFO InternetConnectAHook;
-HOOK_TRACE_INFO InternetConnectWHook;
-HOOK_TRACE_INFO InternetReadFileHook;
-HOOK_TRACE_INFO InternetReadFileExAHook;
-HOOK_TRACE_INFO InternetReadFileExWHook;
-HOOK_TRACE_INFO InternetWriteFileHook;
-HOOK_TRACE_INFO HttpOpenRequestAHook;
-HOOK_TRACE_INFO HttpOpenRequestWHook;
-HOOK_TRACE_INFO HttpSendRequestAHook;
-HOOK_TRACE_INFO HttpSendRequestWHook;
-HOOK_TRACE_INFO HttpSendRequestExAHook;
-HOOK_TRACE_INFO HttpSendRequestExWHook;
+    static HOOK_TRACE_INFO InternetOpenAHook;
+    static HOOK_TRACE_INFO InternetOpenWHook;
+    static HOOK_TRACE_INFO InternetOpenUrlAHook;
+    static HOOK_TRACE_INFO InternetOpenUrlWHook;
+    static HOOK_TRACE_INFO InternetConnectAHook;
+    static HOOK_TRACE_INFO InternetConnectWHook;
+    static HOOK_TRACE_INFO InternetReadFileHook;
+    static HOOK_TRACE_INFO InternetReadFileExAHook;
+    static HOOK_TRACE_INFO InternetReadFileExWHook;
+    static HOOK_TRACE_INFO InternetWriteFileHook;
+    static HOOK_TRACE_INFO HttpOpenRequestAHook;
+    static HOOK_TRACE_INFO HttpOpenRequestWHook;
+    static HOOK_TRACE_INFO HttpSendRequestAHook;
+    static HOOK_TRACE_INFO HttpSendRequestWHook;
+    static HOOK_TRACE_INFO HttpSendRequestExAHook;
+    static HOOK_TRACE_INFO HttpSendRequestExWHook;
+    static HINTERNET WINAPI MyInternetOpenA(
+        LPCSTR lpszAgent,
+        DWORD  dwAccessType,
+        LPCSTR lpszProxy,
+        LPCSTR lpszProxyBypass,
+        DWORD  dwFlags
+    );
+    static HINTERNET WINAPI MyInternetOpenW(
+        LPCWSTR lpszAgent,
+        DWORD  dwAccessType,
+        LPCWSTR lpszProxy,
+        LPCWSTR lpszProxyBypass,
+        DWORD  dwFlags
+    );
+    static HINTERNET WINAPI MyInternetOpenUrlA(
+        HINTERNET hInternet,
+        LPCSTR    lpszUrl,
+        LPCSTR    lpszHeaders,
+        DWORD     dwHeadersLength,
+        DWORD     dwFlags,
+        DWORD_PTR dwContext
+    );
+    static HINTERNET WINAPI MyInternetOpenUrlW(
+        HINTERNET hInternet,
+        LPCWSTR    lpszUrl,
+        LPCWSTR    lpszHeaders,
+        DWORD     dwHeadersLength,
+        DWORD     dwFlags,
+        DWORD_PTR dwContext
+    );
+   static HINTERNET WINAPI  MyInternetConnectA(
+        HINTERNET     hInternet,
+        LPCSTR        lpszServerName,
+        INTERNET_PORT nServerPort,
+        LPCSTR        lpszUserName,
+        LPCSTR        lpszPassword,
+        DWORD         dwService,
+        DWORD         dwFlags,
+        DWORD_PTR     dwContext
+    );
+   static HINTERNET WINAPI  MyInternetConnectW(
+       HINTERNET     hInternet,
+       LPCWSTR        lpszServerName,
+       INTERNET_PORT nServerPort,
+       LPCWSTR        lpszUserName,
+       LPCWSTR        lpszPassword,
+       DWORD         dwService,
+       DWORD         dwFlags,
+       DWORD_PTR     dwContext
+   );
+   static BOOL WINAPI MyInternetReadFile(
+       HINTERNET hFile,
+       LPVOID    lpBuffer,
+       DWORD     dwNumberOfBytesToRead,
+       LPDWORD   lpdwNumberOfBytesRead
+   );
+   static BOOL WINAPI MyInternetReadFileExA(
+       HINTERNET           hFile,
+       LPINTERNET_BUFFERSA lpBuffersOut,
+       DWORD               dwFlags,
+       DWORD_PTR           dwContext
+   );
+   static BOOL WINAPI MyInternetReadFileExW(
+       HINTERNET           hFile,
+       LPINTERNET_BUFFERSW lpBuffersOut,
+       DWORD               dwFlags,
+       DWORD_PTR           dwContext
+   );
+   static BOOL WINAPI MyInternetWriteFile(
+       HINTERNET hFile,
+       LPCVOID   lpBuffer,
+       DWORD     dwNumberOfBytesToWrite,
+       LPDWORD   lpdwNumberOfBytesWritten
+   );
+   static HINTERNET WINAPI MyHttpOpenRequestA(
+       HINTERNET hConnect,
+       LPCSTR    lpszVerb,
+       LPCSTR    lpszObjectName,
+       LPCSTR    lpszVersion,
+       LPCSTR    lpszReferrer,
+       LPCSTR* lplpszAcceptTypes,
+       DWORD     dwFlags,
+       DWORD_PTR dwContext
+   );
+   static HINTERNET WINAPI MyHttpOpenRequestW(
+       HINTERNET hConnect,
+       LPCWSTR    lpszVerb,
+       LPCWSTR    lpszObjectName,
+       LPCWSTR    lpszVersion,
+       LPCWSTR    lpszReferrer,
+       LPCWSTR* lplpszAcceptTypes,
+       DWORD     dwFlags,
+       DWORD_PTR dwContext
+   );
+   static BOOL WINAPI MyHttpSendRequestA(
+       HINTERNET hRequest,
+       LPCSTR    lpszHeaders,
+       DWORD     dwHeadersLength,
+       LPVOID    lpOptional,
+       DWORD     dwOptionalLength
+   );
+   static BOOL WINAPI MyHttpSendRequestW(
+       HINTERNET hRequest,
+       LPCWSTR    lpszHeaders,
+       DWORD     dwHeadersLength,
+       LPVOID    lpOptional,
+       DWORD     dwOptionalLength
+   );
+   static BOOL WINAPI MyHttpSendRequestExA(
+       HINTERNET           hRequest,
+       LPINTERNET_BUFFERSA lpBuffersIn,
+       LPINTERNET_BUFFERSA lpBuffersOut,
+       DWORD               dwFlags,
+       DWORD_PTR           dwContext
+   );
+   static BOOL WINAPI MyHttpSendRequestExW(
+       HINTERNET           hRequest,
+       LPINTERNET_BUFFERSW lpBuffersIn,
+       LPINTERNET_BUFFERSW lpBuffersOut,
+       DWORD               dwFlags,
+       DWORD_PTR           dwContext
+   );
+};
+BOOL MyWinNetApi::WinNetApiEnable = TRUE;
+
+map<HANDLE, wstring> MyWinNetApi::InternetOpenHandleMap;
+map<HANDLE, wstring> MyWinNetApi::InternetFileHandleMap;
+map<HANDLE, wstring> MyWinNetApi::FtpSessionMap;
+map<HANDLE, wstring> MyWinNetApi::HttpSessionMap;
+map<HANDLE, wstring> MyWinNetApi::HttpRequestMap;
+
+HOOK_TRACE_INFO MyWinNetApi::InternetOpenAHook;
+HOOK_TRACE_INFO MyWinNetApi::InternetOpenWHook;
+HOOK_TRACE_INFO MyWinNetApi::InternetOpenUrlAHook;
+HOOK_TRACE_INFO MyWinNetApi::InternetOpenUrlWHook;
+HOOK_TRACE_INFO MyWinNetApi::InternetConnectAHook;
+HOOK_TRACE_INFO MyWinNetApi::InternetConnectWHook;
+HOOK_TRACE_INFO MyWinNetApi::InternetReadFileHook;
+HOOK_TRACE_INFO MyWinNetApi::InternetReadFileExAHook;
+HOOK_TRACE_INFO MyWinNetApi::InternetReadFileExWHook;
+HOOK_TRACE_INFO MyWinNetApi::InternetWriteFileHook;
+HOOK_TRACE_INFO MyWinNetApi::HttpOpenRequestAHook;
+HOOK_TRACE_INFO MyWinNetApi::HttpOpenRequestWHook;
+HOOK_TRACE_INFO MyWinNetApi::HttpSendRequestAHook;
+HOOK_TRACE_INFO MyWinNetApi::HttpSendRequestWHook;
+HOOK_TRACE_INFO MyWinNetApi::HttpSendRequestExAHook;
+HOOK_TRACE_INFO MyWinNetApi::HttpSendRequestExWHook;
 
 
-HINTERNET WINAPI MyInternetOpenA(
+
+HINTERNET WINAPI MyWinNetApi::MyInternetOpenA(
     LPCSTR lpszAgent,
     DWORD  dwAccessType,
     LPCSTR lpszProxy,
@@ -55,7 +206,7 @@ HINTERNET WINAPI MyInternetOpenA(
     return rtn;
 }
 
-HINTERNET WINAPI MyInternetOpenW(
+HINTERNET WINAPI MyWinNetApi::MyInternetOpenW(
     LPCWSTR lpszAgent,
     DWORD  dwAccessType,
     LPCWSTR lpszProxy,
@@ -80,7 +231,7 @@ HINTERNET WINAPI MyInternetOpenW(
     return rtn;
 }
 
-HINTERNET WINAPI MyInternetOpenUrlA(
+HINTERNET WINAPI MyWinNetApi::MyInternetOpenUrlA(
     HINTERNET hInternet,
     LPCSTR    lpszUrl,
     LPCSTR    lpszHeaders,
@@ -106,7 +257,7 @@ HINTERNET WINAPI MyInternetOpenUrlA(
     return rtn;
 }
 
-HINTERNET WINAPI MyInternetOpenUrlW(
+HINTERNET WINAPI MyWinNetApi::MyInternetOpenUrlW(
     HINTERNET hInternet,
     LPCWSTR    lpszUrl,
     LPCWSTR    lpszHeaders,
@@ -132,7 +283,7 @@ HINTERNET WINAPI MyInternetOpenUrlW(
     return rtn;
 }
 
-HINTERNET WINAPI  MyInternetConnectA(
+HINTERNET WINAPI  MyWinNetApi::MyInternetConnectA(
     HINTERNET     hInternet,
     LPCSTR        lpszServerName,
     INTERNET_PORT nServerPort,
@@ -205,7 +356,7 @@ HINTERNET WINAPI  MyInternetConnectA(
     return rtn;
 }
 
-HINTERNET WINAPI  MyInternetConnectW(
+HINTERNET WINAPI  MyWinNetApi::MyInternetConnectW(
     HINTERNET     hInternet,
     LPCWSTR        lpszServerName,
     INTERNET_PORT nServerPort,
@@ -278,7 +429,7 @@ HINTERNET WINAPI  MyInternetConnectW(
     return rtn;
 }
 
-BOOL WINAPI MyInternetReadFile(
+BOOL WINAPI MyWinNetApi::MyInternetReadFile(
     HINTERNET hFile,
     LPVOID    lpBuffer,
     DWORD     dwNumberOfBytesToRead,
@@ -292,7 +443,7 @@ BOOL WINAPI MyInternetReadFile(
     return rtn;
 }
 
-BOOL WINAPI MyInternetReadFileExA(
+BOOL WINAPI MyWinNetApi::MyInternetReadFileExA(
     HINTERNET           hFile,
     LPINTERNET_BUFFERSA lpBuffersOut,
     DWORD               dwFlags,
@@ -305,7 +456,7 @@ BOOL WINAPI MyInternetReadFileExA(
     return rtn;
 }
 
-BOOL WINAPI MyInternetReadFileExW(
+BOOL WINAPI MyWinNetApi::MyInternetReadFileExW(
     HINTERNET           hFile,
     LPINTERNET_BUFFERSW lpBuffersOut,
     DWORD               dwFlags,
@@ -318,7 +469,7 @@ BOOL WINAPI MyInternetReadFileExW(
     return rtn;
 }
 
-BOOL WINAPI MyInternetWriteFile(
+BOOL WINAPI MyWinNetApi::MyInternetWriteFile(
     HINTERNET hFile,
     LPCVOID   lpBuffer,
     DWORD     dwNumberOfBytesToWrite,
@@ -332,7 +483,7 @@ BOOL WINAPI MyInternetWriteFile(
     return rtn;
 }
 
-HINTERNET WINAPI MyHttpOpenRequestA(
+HINTERNET WINAPI MyWinNetApi::MyHttpOpenRequestA(
     HINTERNET hConnect,
     LPCSTR    lpszVerb,
     LPCSTR    lpszObjectName,
@@ -355,7 +506,7 @@ HINTERNET WINAPI MyHttpOpenRequestA(
     return rtn;
 }
 
-HINTERNET WINAPI MyHttpOpenRequestW(
+HINTERNET WINAPI MyWinNetApi::MyHttpOpenRequestW(
     HINTERNET hConnect,
     LPCWSTR    lpszVerb,
     LPCWSTR    lpszObjectName,
@@ -378,7 +529,7 @@ HINTERNET WINAPI MyHttpOpenRequestW(
     return rtn;
 }
 
-BOOL WINAPI MyHttpSendRequestA(
+BOOL WINAPI MyWinNetApi::MyHttpSendRequestA(
     HINTERNET hRequest,
     LPCSTR    lpszHeaders,
     DWORD     dwHeadersLength,
@@ -393,7 +544,7 @@ BOOL WINAPI MyHttpSendRequestA(
     return rtn;
 }
 
-BOOL WINAPI MyHttpSendRequestW(
+BOOL WINAPI MyWinNetApi::MyHttpSendRequestW(
     HINTERNET hRequest,
     LPCWSTR    lpszHeaders,
     DWORD     dwHeadersLength,
@@ -408,7 +559,7 @@ BOOL WINAPI MyHttpSendRequestW(
     return rtn;
 }
 
-BOOL WINAPI MyHttpSendRequestExA(
+BOOL WINAPI MyWinNetApi::MyHttpSendRequestExA(
     HINTERNET           hRequest,
     LPINTERNET_BUFFERSA lpBuffersIn,
     LPINTERNET_BUFFERSA lpBuffersOut,
@@ -422,7 +573,7 @@ BOOL WINAPI MyHttpSendRequestExA(
     return rtn;
 }
 
-BOOL WINAPI MyHttpSendRequestExW(
+BOOL WINAPI MyWinNetApi::MyHttpSendRequestExW(
     HINTERNET           hRequest,
     LPINTERNET_BUFFERSW lpBuffersIn,
     LPINTERNET_BUFFERSW lpBuffersOut,
@@ -439,39 +590,39 @@ BOOL WINAPI MyHttpSendRequestExW(
 
 void InitWinNetApi64()
 {
-    Check("InternetOpenA", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "InternetOpenA"), MyInternetOpenA, NULL, &InternetOpenAHook));
-    Check("InternetOpenW",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "InternetOpenW"), MyInternetOpenW, NULL, &InternetOpenWHook));
-    Check("InternetConnectA",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "InternetConnectA"), MyInternetConnectA, NULL, &InternetConnectAHook));
-    Check("InternetConnectW",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "InternetConnectW"), MyInternetConnectW, NULL, &InternetConnectWHook));
-    Check("InternetOpenUrlA",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "InternetOpenUrlA"), MyInternetOpenUrlA, NULL, &InternetOpenUrlAHook));
-    Check("InternetOpenUrlW",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "InternetOpenUrlW"), MyInternetOpenUrlW, NULL, &InternetOpenUrlWHook));
-    Check("InternetReadFile",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "InternetReadFile"), MyInternetReadFile, NULL, &InternetReadFileHook));
-    Check("InternetReadFileExA",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "InternetReadFileExA"), MyInternetReadFileExA, NULL, &InternetReadFileExAHook));
-    Check("InternetReadFileExW",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "InternetReadFileExW"), MyInternetReadFileExW, NULL, &InternetReadFileExWHook));
-    Check("InternetWriteFile",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "InternetWriteFile"), MyInternetWriteFile, NULL, &InternetWriteFileHook));
-    Check("HttpOpenRequestA",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "HttpOpenRequestA"), MyHttpOpenRequestA, NULL, &HttpOpenRequestAHook));
-    Check("HttpOpenRequestW",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "HttpOpenRequestW"), MyHttpOpenRequestW, NULL, &HttpOpenRequestWHook));
-    Check("HttpSendRequestA",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "HttpSendRequestA"), MyHttpSendRequestA, NULL, &HttpSendRequestAHook));
-    Check("HttpSendRequestW",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "HttpSendRequestW"), MyHttpSendRequestW, NULL, &HttpSendRequestWHook));
-    Check("HttpSendRequestExA",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "HttpSendRequestExA"), MyHttpSendRequestExA, NULL, &HttpSendRequestExAHook));
-    Check("HttpSendRequestExW",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "HttpSendRequestExW"), MyHttpSendRequestExA, NULL, &HttpSendRequestExWHook));
+    Check("InternetOpenA", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "InternetOpenA"), MyWinNetApi::MyInternetOpenA, NULL, &MyWinNetApi::InternetOpenAHook));
+    Check("InternetOpenW",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "InternetOpenW"), MyWinNetApi::MyInternetOpenW, NULL, &MyWinNetApi::InternetOpenWHook));
+    Check("InternetConnectA",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "InternetConnectA"), MyWinNetApi::MyInternetConnectA, NULL, &MyWinNetApi::InternetConnectAHook));
+    Check("InternetConnectW",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "InternetConnectW"), MyWinNetApi::MyInternetConnectW, NULL, &MyWinNetApi::InternetConnectWHook));
+    Check("InternetOpenUrlA",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "InternetOpenUrlA"), MyWinNetApi::MyInternetOpenUrlA, NULL, &MyWinNetApi::InternetOpenUrlAHook));
+    Check("InternetOpenUrlW",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "InternetOpenUrlW"), MyWinNetApi::MyInternetOpenUrlW, NULL, &MyWinNetApi::InternetOpenUrlWHook));
+    Check("InternetReadFile",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "InternetReadFile"), MyWinNetApi::MyInternetReadFile, NULL, &MyWinNetApi::InternetReadFileHook));
+    Check("InternetReadFileExA",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "InternetReadFileExA"), MyWinNetApi::MyInternetReadFileExA, NULL, &MyWinNetApi::InternetReadFileExAHook));
+    Check("InternetReadFileExW",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "InternetReadFileExW"), MyWinNetApi::MyInternetReadFileExW, NULL, &MyWinNetApi::InternetReadFileExWHook));
+    Check("InternetWriteFile",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "InternetWriteFile"), MyWinNetApi::MyInternetWriteFile, NULL, &MyWinNetApi::InternetWriteFileHook));
+    Check("HttpOpenRequestA",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "HttpOpenRequestA"), MyWinNetApi::MyHttpOpenRequestA, NULL, &MyWinNetApi::HttpOpenRequestAHook));
+    Check("HttpOpenRequestW",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "HttpOpenRequestW"), MyWinNetApi::MyHttpOpenRequestW, NULL, &MyWinNetApi::HttpOpenRequestWHook));
+    Check("HttpSendRequestA",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "HttpSendRequestA"), MyWinNetApi::MyHttpSendRequestA, NULL, &MyWinNetApi::HttpSendRequestAHook));
+    Check("HttpSendRequestW",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "HttpSendRequestW"), MyWinNetApi::MyHttpSendRequestW, NULL, &MyWinNetApi::HttpSendRequestWHook));
+    Check("HttpSendRequestExA",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "HttpSendRequestExA"), MyWinNetApi::MyHttpSendRequestExA, NULL, &MyWinNetApi::HttpSendRequestExAHook));
+    Check("HttpSendRequestExW",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "HttpSendRequestExW"), MyWinNetApi::MyHttpSendRequestExA, NULL, &MyWinNetApi::HttpSendRequestExWHook));
 
     ULONG ACLEntries[1] = { 0 };
-    Check("InternetOpenA",LhSetExclusiveACL(ACLEntries, 1, &InternetOpenAHook));
-    Check("InternetOpenW", LhSetExclusiveACL(ACLEntries, 1, &InternetOpenWHook));
-    Check("InternetConnectA", LhSetExclusiveACL(ACLEntries, 1, &InternetConnectAHook));
-    Check("InternetConnectW", LhSetExclusiveACL(ACLEntries, 1, &InternetConnectWHook));
-    Check("InternetOpenUrlA", LhSetExclusiveACL(ACLEntries, 1, &InternetOpenUrlAHook));
-    Check("InternetOpenUrlW", LhSetExclusiveACL(ACLEntries, 1, &InternetOpenUrlWHook));
-    Check("InternetReadFile", LhSetExclusiveACL(ACLEntries, 1, &InternetReadFileHook));
-    Check("InternetReadFileExA", LhSetExclusiveACL(ACLEntries, 1, &InternetReadFileExAHook));
-    Check("InternetReadFileExW", LhSetExclusiveACL(ACLEntries, 1, &InternetReadFileExWHook));
-    Check("InternetWriteFile", LhSetExclusiveACL(ACLEntries, 1, &InternetWriteFileHook));
-    Check("HttpOpenRequestA", LhSetExclusiveACL(ACLEntries, 1, &HttpOpenRequestAHook));
-    Check("HttpOpenRequestW", LhSetExclusiveACL(ACLEntries, 1, &HttpOpenRequestWHook));
-    Check("HttpSendRequestA", LhSetExclusiveACL(ACLEntries, 1, &HttpSendRequestAHook));
-    Check("HttpSendRequestW", LhSetExclusiveACL(ACLEntries, 1, &HttpSendRequestWHook));
-    Check("HttpSendRequestExA", LhSetExclusiveACL(ACLEntries, 1, &HttpSendRequestExAHook));
-    Check("HttpSendRequestExW", LhSetExclusiveACL(ACLEntries, 1, &HttpSendRequestExWHook));
+    Check("InternetOpenA",LhSetExclusiveACL(ACLEntries, 1, &MyWinNetApi::InternetOpenAHook));
+    Check("InternetOpenW", LhSetExclusiveACL(ACLEntries, 1, &MyWinNetApi::InternetOpenWHook));
+    Check("InternetConnectA", LhSetExclusiveACL(ACLEntries, 1, &MyWinNetApi::InternetConnectAHook));
+    Check("InternetConnectW", LhSetExclusiveACL(ACLEntries, 1, &MyWinNetApi::InternetConnectWHook));
+    Check("InternetOpenUrlA", LhSetExclusiveACL(ACLEntries, 1, &MyWinNetApi::InternetOpenUrlAHook));
+    Check("InternetOpenUrlW", LhSetExclusiveACL(ACLEntries, 1, &MyWinNetApi::InternetOpenUrlWHook));
+    Check("InternetReadFile", LhSetExclusiveACL(ACLEntries, 1, &MyWinNetApi::InternetReadFileHook));
+    Check("InternetReadFileExA", LhSetExclusiveACL(ACLEntries, 1, &MyWinNetApi::InternetReadFileExAHook));
+    Check("InternetReadFileExW", LhSetExclusiveACL(ACLEntries, 1, &MyWinNetApi::InternetReadFileExWHook));
+    Check("InternetWriteFile", LhSetExclusiveACL(ACLEntries, 1, &MyWinNetApi::InternetWriteFileHook));
+    Check("HttpOpenRequestA", LhSetExclusiveACL(ACLEntries, 1, &MyWinNetApi::HttpOpenRequestAHook));
+    Check("HttpOpenRequestW", LhSetExclusiveACL(ACLEntries, 1, &MyWinNetApi::HttpOpenRequestWHook));
+    Check("HttpSendRequestA", LhSetExclusiveACL(ACLEntries, 1, &MyWinNetApi::HttpSendRequestAHook));
+    Check("HttpSendRequestW", LhSetExclusiveACL(ACLEntries, 1, &MyWinNetApi::HttpSendRequestWHook));
+    Check("HttpSendRequestExA", LhSetExclusiveACL(ACLEntries, 1, &MyWinNetApi::HttpSendRequestExAHook));
+    Check("HttpSendRequestExW", LhSetExclusiveACL(ACLEntries, 1, &MyWinNetApi::HttpSendRequestExWHook));
 }
 

@@ -5,26 +5,133 @@ using std::map;
 using std::wstring;
 using std::vector;
 
+class MyFileApi
+{
+public:
+	static Level Lv;
+	static BOOL FileApiEnable;
+	static std::wstring FilePrefix;
+	static vector<wstring> FileFilter;
+	static std::map<HANDLE, std::wstring> FileMap;
+	static std::map<HANDLE, WT> WriteFileMap;
+	static HOOK_TRACE_INFO WaitForSingleObjectExHook;
+	static HOOK_TRACE_INFO CreateFileWHook;
+	static HOOK_TRACE_INFO CreateFileAHook;
+	static HOOK_TRACE_INFO ReadFileHook;
+	static HOOK_TRACE_INFO ReadFileExHook;
+	static HOOK_TRACE_INFO WriteFileHook;
+	static HOOK_TRACE_INFO WriteFileExHook;
+	static HOOK_TRACE_INFO DeleteFileAHook;
+	static HOOK_TRACE_INFO DeleteFileWHook;
+	static HOOK_TRACE_INFO MoveFileAHook;
+	static HOOK_TRACE_INFO MoveFileWHook;
+	static HOOK_TRACE_INFO MoveFileExAHook;
+	static HOOK_TRACE_INFO MoveFileExWHook;
+	static HOOK_TRACE_INFO CloseHandleHook;
+	static inline bool FILTER_FILE_JUD(const wstring& in);
+	static inline bool WRITE_FILE_JUD(const DWORD& in);
+	MyFileApi(Level Lv)
+	{
+		MyFileApi::Lv = Lv;
+	}
+	static BOOL WINAPI MyCloseHandle(
+		HANDLE hObject
+	);
+	static HANDLE WINAPI MyCreateFileW(
+		LPCWSTR               lpFileName,
+		DWORD                 dwDesiredAccess,
+		DWORD                 dwShareMode,
+		LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+		DWORD                 dwCreationDisposition,
+		DWORD                 dwFlagsAndAttributes,
+		HANDLE                hTemplateFile
+	);
+	static HANDLE WINAPI MyCreateFileA(
+		LPCSTR                lpFileName,
+		DWORD                 dwDesiredAccess,
+		DWORD                 dwShareMode,
+		LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+		DWORD                 dwCreationDisposition,
+		DWORD                 dwFlagsAndAttributes,
+		HANDLE                hTemplateFile
+	);
+	static BOOL WINAPI MyReadFile(
+		HANDLE       hFile,
+		LPVOID       lpBuffer,
+		DWORD        nNumberOfBytesToRead,
+		LPDWORD      lpNumberOfBytesRead,
+		LPOVERLAPPED lpOverlapped
+	);
+	static BOOL WINAPI MyReadFileEx(
+		HANDLE                          hFile,
+		LPVOID                          lpBuffer,
+		DWORD                           nNumberOfBytesToRead,
+		LPOVERLAPPED                    lpOverlapped,
+		LPOVERLAPPED_COMPLETION_ROUTINE lpCompletionRoutine
+	);
+	static BOOL WINAPI MyWriteFile(
+		HANDLE       hFile,
+		LPCVOID      lpBuffer,
+		DWORD        nNumberOfBytesToWrite,
+		LPDWORD      lpNumberOfBytesWritten,
+		LPOVERLAPPED lpOverlapped
+	);
+	static BOOL WINAPI MyWriteFileEx(
+		HANDLE                          hFile,
+		LPCVOID                         lpBuffer,
+		DWORD                           nNumberOfBytesToWrite,
+		LPOVERLAPPED                    lpOverlapped,
+		LPOVERLAPPED_COMPLETION_ROUTINE lpCompletionRoutine
+	);
+	static BOOL WINAPI MyDeleteFileA(
+		LPCSTR lpFileName
+	);
+	static BOOL WINAPI MyDeleteFileW(
+		LPCWSTR lpFileName
+	);
+	static BOOL WINAPI MyMoveFileA(
+		LPCSTR lpExistingFileName,
+		LPCSTR lpNewFileName
+	);
+	static BOOL WINAPI MyMoveFileW(
+		LPCWSTR lpExistingFileName,
+		LPCWSTR lpNewFileName
+	);
+	static BOOL WINAPI MyMoveFileExA(
+		LPCSTR lpExistingFileName,
+		LPCSTR lpNewFileName,
+		DWORD  dwFlags
+	);
+	static BOOL WINAPI MyMoveFileExW(
+		LPCWSTR lpExistingFileName,
+		LPCWSTR lpNewFileName,
+		DWORD  dwFlags
+	);
+	static inline void InitFileApi64();
+	static inline void InitFileApi32();
+};
 
 
-BOOL FileApiEnable = true;
-std::wstring FilePrefix = std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(getenv("USERPROFILE")) + L"\\Desktop\\Tmp\\";
-vector<wstring> FileFilter = { L"my.log", L"MountPointManager" };
-
-HOOK_TRACE_INFO WaitForSingleObjectExHook;
-HOOK_TRACE_INFO CreateFileWHook;
-HOOK_TRACE_INFO CreateFileAHook;
-HOOK_TRACE_INFO ReadFileHook;
-HOOK_TRACE_INFO ReadFileExHook;
-HOOK_TRACE_INFO WriteFileHook;
-HOOK_TRACE_INFO WriteFileExHook;
-HOOK_TRACE_INFO DeleteFileAHook;
-HOOK_TRACE_INFO DeleteFileWHook;
-HOOK_TRACE_INFO MoveFileAHook;
-HOOK_TRACE_INFO MoveFileWHook;
-HOOK_TRACE_INFO MoveFileExAHook;
-HOOK_TRACE_INFO MoveFileExWHook;
-HOOK_TRACE_INFO CloseHandleHook;
+BOOL MyFileApi::FileApiEnable = true;
+std::wstring MyFileApi::FilePrefix = std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(getenv("USERPROFILE")) + L"\\Desktop\\Tmp\\";
+vector<wstring> MyFileApi::FileFilter = { L"my.log", L"MountPointManager" };
+std::map<HANDLE, std::wstring> MyFileApi::FileMap;
+std::map<HANDLE, WT> MyFileApi::WriteFileMap;
+Level MyFileApi::Lv;
+HOOK_TRACE_INFO MyFileApi::WaitForSingleObjectExHook;
+HOOK_TRACE_INFO MyFileApi::CreateFileWHook;
+HOOK_TRACE_INFO MyFileApi::CreateFileAHook;
+HOOK_TRACE_INFO MyFileApi::ReadFileHook;
+HOOK_TRACE_INFO MyFileApi::ReadFileExHook;
+HOOK_TRACE_INFO MyFileApi::WriteFileHook;
+HOOK_TRACE_INFO MyFileApi::WriteFileExHook;
+HOOK_TRACE_INFO MyFileApi::DeleteFileAHook;
+HOOK_TRACE_INFO MyFileApi::DeleteFileWHook;
+HOOK_TRACE_INFO MyFileApi::MoveFileAHook;
+HOOK_TRACE_INFO MyFileApi::MoveFileWHook;
+HOOK_TRACE_INFO MyFileApi::MoveFileExAHook;
+HOOK_TRACE_INFO MyFileApi::MoveFileExWHook;
+HOOK_TRACE_INFO MyFileApi::CloseHandleHook;
 
 DWORD WINAPI MyWaitForSingleObjectEx(
 	HANDLE hHandle,
@@ -37,7 +144,7 @@ DWORD WINAPI MyWaitForSingleObjectEx(
 	return WaitForSingleObjectEx(hHandle, dwMilliseconds, FALSE);
 }
 
-inline bool FILTER_FILE_JUD(const wstring& in)
+inline bool MyFileApi::FILTER_FILE_JUD(const wstring& in)
 {
 	for (auto x : FileFilter)
 		if (in.find(x) != in.npos)
@@ -45,13 +152,13 @@ inline bool FILTER_FILE_JUD(const wstring& in)
 	return false;
 }
 
-inline bool WRITE_FILE_JUD(const DWORD& in)
+inline bool MyFileApi::WRITE_FILE_JUD(const DWORD& in)
 {
 	return (in == GENERIC_ALL) || (in == GENERIC_WRITE) || (in == (GENERIC_READ | GENERIC_WRITE))
 		|| (in == (GENERIC_EXECUTE | GENERIC_WRITE)) || (in == (GENERIC_EXECUTE | GENERIC_READ | GENERIC_WRITE));
 }
 
-BOOL WINAPI MyCloseHandle(
+BOOL WINAPI MyFileApi::MyCloseHandle(
 	HANDLE hObject
 )
 {
@@ -64,7 +171,7 @@ BOOL WINAPI MyCloseHandle(
 	return CloseHandle(hObject);
 }
 
-HANDLE WINAPI MyCreateFileW(
+HANDLE WINAPI MyFileApi::MyCreateFileW(
 	LPCWSTR               lpFileName,
 	DWORD                 dwDesiredAccess,
 	DWORD                 dwShareMode,
@@ -98,7 +205,7 @@ HANDLE WINAPI MyCreateFileW(
 	return rtn;
 }
 
-HANDLE WINAPI MyCreateFileA(
+HANDLE WINAPI MyFileApi::MyCreateFileA(
 	LPCSTR                lpFileName,
 	DWORD                 dwDesiredAccess,
 	DWORD                 dwShareMode,
@@ -132,7 +239,7 @@ HANDLE WINAPI MyCreateFileA(
 	return rtn;
 }
 
-BOOL WINAPI MyReadFile(
+BOOL WINAPI MyFileApi::MyReadFile(
 	HANDLE       hFile,
 	LPVOID       lpBuffer,
 	DWORD        nNumberOfBytesToRead,
@@ -156,7 +263,7 @@ BOOL WINAPI MyReadFile(
 	return rtn;
 }
 
-BOOL WINAPI MyReadFileEx(
+BOOL WINAPI MyFileApi::MyReadFileEx(
 	HANDLE                          hFile,
 	LPVOID                          lpBuffer,
 	DWORD                           nNumberOfBytesToRead,
@@ -180,7 +287,7 @@ BOOL WINAPI MyReadFileEx(
 	return rtn;
 }
 
-BOOL WINAPI MyWriteFile(
+BOOL WINAPI MyFileApi::MyWriteFile(
 	HANDLE       hFile,
 	LPCVOID      lpBuffer,
 	DWORD        nNumberOfBytesToWrite,
@@ -230,7 +337,7 @@ BOOL WINAPI MyWriteFile(
 	return rtn;
 }
 
-BOOL WINAPI MyWriteFileEx(
+BOOL WINAPI MyFileApi::MyWriteFileEx(
 	HANDLE                          hFile,
 	LPCVOID                         lpBuffer,
 	DWORD                           nNumberOfBytesToWrite,
@@ -261,7 +368,7 @@ BOOL WINAPI MyWriteFileEx(
 	return rtn;
 }
 
-BOOL WINAPI MyDeleteFileA(
+BOOL WINAPI MyFileApi::MyDeleteFileA(
 	LPCSTR lpFileName
 )
 {
@@ -271,7 +378,7 @@ BOOL WINAPI MyDeleteFileA(
 	return rtn;
 }
 
-BOOL WINAPI MyDeleteFileW(
+BOOL WINAPI MyFileApi::MyDeleteFileW(
 	LPCWSTR lpFileName
 )
 {
@@ -281,7 +388,7 @@ BOOL WINAPI MyDeleteFileW(
 	return rtn;
 }
 
-BOOL WINAPI MyMoveFileA(
+BOOL WINAPI MyFileApi::MyMoveFileA(
 	LPCSTR lpExistingFileName,
 	LPCSTR lpNewFileName
 )
@@ -293,7 +400,7 @@ BOOL WINAPI MyMoveFileA(
 	return rtn;
 }
 
-BOOL WINAPI MyMoveFileW(
+BOOL WINAPI MyFileApi::MyMoveFileW(
 	LPCWSTR lpExistingFileName,
 	LPCWSTR lpNewFileName
 )
@@ -305,7 +412,7 @@ BOOL WINAPI MyMoveFileW(
 	return rtn;
 }
 
-BOOL WINAPI MyMoveFileExA(
+BOOL WINAPI MyFileApi::MyMoveFileExA(
 	LPCSTR lpExistingFileName,
 	LPCSTR lpNewFileName,
 	DWORD  dwFlags
@@ -318,7 +425,7 @@ BOOL WINAPI MyMoveFileExA(
 	return rtn;
 }
 
-BOOL WINAPI MyMoveFileExW(
+BOOL WINAPI MyFileApi::MyMoveFileExW(
 	LPCWSTR lpExistingFileName,
 	LPCWSTR lpNewFileName,
 	DWORD  dwFlags
@@ -331,65 +438,66 @@ BOOL WINAPI MyMoveFileExW(
 	return rtn;
 }
 
-inline void InitFileApi64()
-{;
-	Check("CreateFileW",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "CreateFileW"), MyCreateFileW, NULL, &CreateFileWHook));
-	Check("CreateFileA",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "CreateFileA"), MyCreateFileA, NULL, &CreateFileAHook));
-	Check("ReadFile",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "ReadFile"), MyReadFile, NULL, &ReadFileHook));
-	Check("ReadFileEx",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "ReadFileEx"), MyReadFileEx, NULL, &ReadFileExHook));
-	Check("WriteFile",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "WriteFile"), MyWriteFile, NULL, &WriteFileHook));
-	Check("WriteFileEx",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "WriteFileEx"), MyWriteFileEx, NULL, &WriteFileExHook));
-	Check("DeleteFileA",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "DeleteFileA"), MyDeleteFileA, NULL, &DeleteFileAHook));
-	Check("DeleteFileW",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "DeleteFileW"), MyDeleteFileW, NULL, &DeleteFileWHook));
-	Check("MoveFileA",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "MoveFileA"), MyMoveFileA, NULL, &MoveFileAHook));
-	Check("MoveFileW",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "MoveFileW"), MyMoveFileW, NULL, &MoveFileWHook));
-	Check("MoveFileExA",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "MoveFileExA"), MyMoveFileExA, NULL, &MoveFileExAHook));
-	Check("MoveFileExW",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "MoveFileExW"), MyMoveFileExW, NULL, &MoveFileExWHook));
-	Check("CloseHandle", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "CloseHandle"), MyCloseHandle, NULL, &CloseHandleHook));
+inline void MyFileApi::InitFileApi64()
+{
+	PLOGD << "LV:" << Lv << endl;
+	Check("CreateFileW",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "CreateFileW"), MyFileApi::MyCreateFileW, NULL, &MyFileApi::CreateFileWHook));
+	Check("CreateFileA",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "CreateFileA"), MyFileApi::MyCreateFileA, NULL, &MyFileApi::CreateFileAHook));
+	Check("ReadFile",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "ReadFile"), MyFileApi::MyReadFile, NULL, &MyFileApi::ReadFileHook));
+	Check("ReadFileEx",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "ReadFileEx"), MyFileApi::MyReadFileEx, NULL, &MyFileApi::ReadFileExHook));
+	Check("WriteFile",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "WriteFile"), MyFileApi::MyWriteFile, NULL, &MyFileApi::WriteFileHook));
+	Check("WriteFileEx",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "WriteFileEx"), MyFileApi::MyWriteFileEx, NULL, &MyFileApi::WriteFileExHook));
+	Check("DeleteFileA",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "DeleteFileA"), MyFileApi::MyDeleteFileA, NULL, &MyFileApi::DeleteFileAHook));
+	Check("DeleteFileW",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "DeleteFileW"), MyFileApi::MyDeleteFileW, NULL, &MyFileApi::DeleteFileWHook));
+	Check("MoveFileA",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "MoveFileA"), MyFileApi::MyMoveFileA, NULL, &MyFileApi::MoveFileAHook));
+	Check("MoveFileW",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "MoveFileW"), MyFileApi::MyMoveFileW, NULL, &MyFileApi::MoveFileWHook));
+	Check("MoveFileExA",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "MoveFileExA"), MyFileApi::MyMoveFileExA, NULL, &MyFileApi::MoveFileExAHook));
+	Check("MoveFileExW",LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "MoveFileExW"), MyFileApi::MyMoveFileExW, NULL, &MyFileApi::MoveFileExWHook));
+	Check("CloseHandle", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernelbase")), "CloseHandle"), MyFileApi::MyCloseHandle, NULL, &MyFileApi::CloseHandleHook));
 
 	ULONG ACLEntries[1] = { 0 };
-	Check("CreateFileW", LhSetExclusiveACL(ACLEntries, 1, &CreateFileWHook));
-	Check("CreateFileA", LhSetExclusiveACL(ACLEntries, 1, &CreateFileAHook));
-	Check("ReadFile", LhSetExclusiveACL(ACLEntries, 1, &ReadFileHook));
-	Check("ReadFileEx", LhSetExclusiveACL(ACLEntries, 1, &ReadFileExHook));
-	Check("WriteFile", LhSetExclusiveACL(ACLEntries, 1, &WriteFileHook));
-	Check("WriteFileEx", LhSetExclusiveACL(ACLEntries, 1, &WriteFileExHook));
-	Check("DeleteFileA", LhSetExclusiveACL(ACLEntries, 1, &DeleteFileAHook));
-	Check("DeleteFileW", LhSetExclusiveACL(ACLEntries, 1, &DeleteFileWHook));
-	Check("MoveFileA", LhSetExclusiveACL(ACLEntries, 1, &MoveFileAHook));
-	Check("MoveFileW", LhSetExclusiveACL(ACLEntries, 1, &MoveFileWHook));
-	Check("MoveFileExA", LhSetExclusiveACL(ACLEntries, 1, &MoveFileExAHook));
-	Check("MoveFileExW", LhSetExclusiveACL(ACLEntries, 1, &MoveFileExWHook));
-	Check("CloseHandle", LhSetExclusiveACL(ACLEntries, 1, &CloseHandleHook));
+	Check("CreateFileW", LhSetExclusiveACL(ACLEntries, 1, &MyFileApi::CreateFileWHook));
+	Check("CreateFileA", LhSetExclusiveACL(ACLEntries, 1, &MyFileApi::CreateFileAHook));
+	Check("ReadFile", LhSetExclusiveACL(ACLEntries, 1, &MyFileApi::ReadFileHook));
+	Check("ReadFileEx", LhSetExclusiveACL(ACLEntries, 1, &MyFileApi::ReadFileExHook));
+	Check("WriteFile", LhSetExclusiveACL(ACLEntries, 1, &MyFileApi::WriteFileHook));
+	Check("WriteFileEx", LhSetExclusiveACL(ACLEntries, 1, &MyFileApi::WriteFileExHook));
+	Check("DeleteFileA", LhSetExclusiveACL(ACLEntries, 1, &MyFileApi::DeleteFileAHook));
+	Check("DeleteFileW", LhSetExclusiveACL(ACLEntries, 1, &MyFileApi::DeleteFileWHook));
+	Check("MoveFileA", LhSetExclusiveACL(ACLEntries, 1, &MyFileApi::MoveFileAHook));
+	Check("MoveFileW", LhSetExclusiveACL(ACLEntries, 1, &MyFileApi::MoveFileWHook));
+	Check("MoveFileExA", LhSetExclusiveACL(ACLEntries, 1, &MyFileApi::MoveFileExAHook));
+	Check("MoveFileExW", LhSetExclusiveACL(ACLEntries, 1, &MyFileApi::MoveFileExWHook));
+	Check("CloseHandle", LhSetExclusiveACL(ACLEntries, 1, &MyFileApi::CloseHandleHook));
 }
 
-inline void InitFileApi32()
+inline void MyFileApi::InitFileApi32()
 {
 	;
-	Check("CreateFileW", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "CreateFileW"), MyCreateFileW, NULL, &CreateFileWHook));
-	Check("CreateFileA", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "CreateFileA"), MyCreateFileA, NULL, &CreateFileAHook));
-	Check("ReadFile", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "ReadFile"), MyReadFile, NULL, &ReadFileHook));
-	Check("ReadFileEx", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "ReadFileEx"), MyReadFileEx, NULL, &ReadFileExHook));
-	Check("WriteFile", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "WriteFile"), MyWriteFile, NULL, &WriteFileHook));
-	Check("WriteFileEx", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "WriteFileEx"), MyWriteFileEx, NULL, &WriteFileExHook));
-	Check("DeleteFileA", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "DeleteFileA"), MyDeleteFileA, NULL, &DeleteFileAHook));
-	Check("DeleteFileW", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "DeleteFileW"), MyDeleteFileW, NULL, &DeleteFileWHook));
-	Check("MoveFileA", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "MoveFileA"), MyMoveFileA, NULL, &MoveFileAHook));
-	Check("MoveFileW", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "MoveFileW"), MyMoveFileW, NULL, &MoveFileWHook));
-	Check("MoveFileExA", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "MoveFileExA"), MyMoveFileExA, NULL, &MoveFileExAHook));
-	Check("MoveFileExW", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "MoveFileExW"), MyMoveFileExW, NULL, &MoveFileExWHook));
+	Check("CreateFileW", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "CreateFileW"), MyFileApi::MyCreateFileW, NULL, &MyFileApi::CreateFileWHook));
+	Check("CreateFileA", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "CreateFileA"), MyFileApi::MyCreateFileA, NULL, &MyFileApi::CreateFileAHook));
+	Check("ReadFile", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "ReadFile"), MyFileApi::MyReadFile, NULL, &MyFileApi::ReadFileHook));
+	Check("ReadFileEx", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "ReadFileEx"), MyFileApi::MyReadFileEx, NULL, &MyFileApi::ReadFileExHook));
+	Check("WriteFile", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "WriteFile"), MyFileApi::MyWriteFile, NULL, &MyFileApi::WriteFileHook));
+	Check("WriteFileEx", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "WriteFileEx"), MyFileApi::MyWriteFileEx, NULL, &MyFileApi::WriteFileExHook));
+	Check("DeleteFileA", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "DeleteFileA"), MyFileApi::MyDeleteFileA, NULL, &MyFileApi::DeleteFileAHook));
+	Check("DeleteFileW", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "DeleteFileW"), MyFileApi::MyDeleteFileW, NULL, &MyFileApi::DeleteFileWHook));
+	Check("MoveFileA", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "MoveFileA"), MyFileApi::MyMoveFileA, NULL, &MyFileApi::MoveFileAHook));
+	Check("MoveFileW", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "MoveFileW"), MyFileApi::MyMoveFileW, NULL, &MyFileApi::MoveFileWHook));
+	Check("MoveFileExA", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "MoveFileExA"), MyFileApi::MyMoveFileExA, NULL, &MyFileApi::MoveFileExAHook));
+	Check("MoveFileExW", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("kernel32")), "MoveFileExW"), MyFileApi::MyMoveFileExW, NULL, &MyFileApi::MoveFileExWHook));
 
 	ULONG ACLEntries[1] = { 0 };
-	Check("CreateFileW", LhSetExclusiveACL(ACLEntries, 1, &CreateFileWHook));
-	Check("CreateFileA", LhSetExclusiveACL(ACLEntries, 1, &CreateFileAHook));
-	Check("ReadFile", LhSetExclusiveACL(ACLEntries, 1, &ReadFileHook));
-	Check("ReadFileEx", LhSetExclusiveACL(ACLEntries, 1, &ReadFileExHook));
-	Check("WriteFile", LhSetExclusiveACL(ACLEntries, 1, &WriteFileHook));
-	Check("WriteFileEx", LhSetExclusiveACL(ACLEntries, 1, &WriteFileExHook));
-	Check("DeleteFileA", LhSetExclusiveACL(ACLEntries, 1, &DeleteFileAHook));
-	Check("DeleteFileW", LhSetExclusiveACL(ACLEntries, 1, &DeleteFileWHook));
-	Check("MoveFileA", LhSetExclusiveACL(ACLEntries, 1, &MoveFileAHook));
-	Check("MoveFileW", LhSetExclusiveACL(ACLEntries, 1, &MoveFileWHook));
-	Check("MoveFileExA", LhSetExclusiveACL(ACLEntries, 1, &MoveFileExAHook));
-	Check("MoveFileExW", LhSetExclusiveACL(ACLEntries, 1, &MoveFileExWHook));
+	Check("CreateFileW", LhSetExclusiveACL(ACLEntries, 1, &MyFileApi::CreateFileWHook));
+	Check("CreateFileA", LhSetExclusiveACL(ACLEntries, 1, &MyFileApi::CreateFileAHook));
+	Check("ReadFile", LhSetExclusiveACL(ACLEntries, 1, &MyFileApi::ReadFileHook));
+	Check("ReadFileEx", LhSetExclusiveACL(ACLEntries, 1, &MyFileApi::ReadFileExHook));
+	Check("WriteFile", LhSetExclusiveACL(ACLEntries, 1, &MyFileApi::WriteFileHook));
+	Check("WriteFileEx", LhSetExclusiveACL(ACLEntries, 1, &MyFileApi::WriteFileExHook));
+	Check("DeleteFileA", LhSetExclusiveACL(ACLEntries, 1, &MyFileApi::DeleteFileAHook));
+	Check("DeleteFileW", LhSetExclusiveACL(ACLEntries, 1, &MyFileApi::DeleteFileWHook));
+	Check("MoveFileA", LhSetExclusiveACL(ACLEntries, 1, &MyFileApi::MoveFileAHook));
+	Check("MoveFileW", LhSetExclusiveACL(ACLEntries, 1, &MyFileApi::MoveFileWHook));
+	Check("MoveFileExA", LhSetExclusiveACL(ACLEntries, 1, &MyFileApi::MoveFileExAHook));
+	Check("MoveFileExW", LhSetExclusiveACL(ACLEntries, 1, &MyFileApi::MoveFileExWHook));
 }

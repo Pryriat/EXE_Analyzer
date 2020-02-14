@@ -6,17 +6,15 @@
 #include"MyWinNetApi.h"
 #include"MyRegApi.h"
 #include"MyServiceApi.h"
-MyServiceApi ServiceApi;
-
+ 
 DWORD gFreqOffset = 0;
 extern "C" void __declspec(dllexport) __stdcall NativeInjectionEntryPoint(REMOTE_ENTRY_INFO * inRemoteInfo);
 
 void __stdcall NativeInjectionEntryPoint(REMOTE_ENTRY_INFO* inRemoteInfo)
 {
 	plog::init(plog::debug, "C:\\Users\\hjc98\\Desktop\\my.log");
-	MyProcessApi* HC = (MyProcessApi*)(inRemoteInfo->UserData);
-	PLOGD << "DL:"<<HC->out<<"  "<<HC<<endl;
-	HC->InitProcessApi64();
+	MyFileApi MF(Debug);
+	MF.InitFileApi64();
 	//InitFileApi64();
 	//InitProcessApi64();
 	//InitWinNetApi64();
