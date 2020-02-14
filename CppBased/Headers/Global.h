@@ -23,7 +23,8 @@
 enum Level
 {
 	None,
-	Cirtial,
+	Critial,
+	Extra,
 	Debug
 };
 struct WT

@@ -30,7 +30,7 @@ public:
 	static HOOK_TRACE_INFO CloseHandleHook;
 	static inline bool FILTER_FILE_JUD(const wstring& in);
 	static inline bool WRITE_FILE_JUD(const DWORD& in);
-	MyFileApi(Level Lv)
+	static void SetLv(Level Lv)
 	{
 		MyFileApi::Lv = Lv;
 	}
@@ -117,7 +117,7 @@ std::wstring MyFileApi::FilePrefix = std::wstring_convert<std::codecvt_utf8<wcha
 vector<wstring> MyFileApi::FileFilter = { L"my.log", L"MountPointManager" };
 std::map<HANDLE, std::wstring> MyFileApi::FileMap;
 std::map<HANDLE, WT> MyFileApi::WriteFileMap;
-Level MyFileApi::Lv;
+Level MyFileApi::Lv = Debug;
 HOOK_TRACE_INFO MyFileApi::WaitForSingleObjectExHook;
 HOOK_TRACE_INFO MyFileApi::CreateFileWHook;
 HOOK_TRACE_INFO MyFileApi::CreateFileAHook;
@@ -164,7 +164,8 @@ BOOL WINAPI MyFileApi::MyCloseHandle(
 {
 	if (WriteFileMap.find(hObject) != WriteFileMap.end())
 	{
-		PLOGD << "CloseHandle->FileName:" << *(WriteFileMap[hObject].lpFileName) << endl;
+		if(Lv>Extra)
+			PLOGD << "CloseHandle->FileName:" << *(WriteFileMap[hObject].lpFileName) << endl;
 		CloseHandle(WriteFileMap[hObject].Shadow);
 		WriteFileMap.erase(hObject);
 	}
@@ -192,13 +193,15 @@ HANDLE WINAPI MyFileApi::MyCreateFileW(
 			HANDLE shadow = CreateFileW(tmp.c_str(), dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
 			if (shadow != INVALID_HANDLE_VALUE)
 			{
-				WriteFileMap[rtn] = { &FileMap[rtn], dwDesiredAccess, dwShareMode, dwCreationDisposition, dwFlagsAndAttributes, shadow };
-				PLOGD << "CreateFileW->FileName:" << c
-					<< ",  Handle:" << rtn
-					<< ", dwDesiredAccess:" << dwDesiredAccess
-					<< ",  dwShareMode:" << dwShareMode
-					<< ",  dwCreationDisposition:" << dwCreationDisposition
-					<< ",  dwFlagsAndAttributes:" << dwFlagsAndAttributes << endl;
+				if(Lv > Critial)
+					WriteFileMap[rtn] = { &FileMap[rtn], dwDesiredAccess, dwShareMode, dwCreationDisposition, dwFlagsAndAttributes, shadow };
+				if(Lv>Extra)
+					PLOGD << "CreateFileW->FileName:" << c
+						<< ",  Handle:" << rtn
+						<< ", dwDesiredAccess:" << dwDesiredAccess
+						<< ",  dwShareMode:" << dwShareMode
+						<< ",  dwCreationDisposition:" << dwCreationDisposition
+						<< ",  dwFlagsAndAttributes:" << dwFlagsAndAttributes << endl;
 			}
 		}
 	}
@@ -226,13 +229,15 @@ HANDLE WINAPI MyFileApi::MyCreateFileA(
 			HANDLE shadow = CreateFileW(tmp.c_str(), dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
 			if (shadow != INVALID_HANDLE_VALUE)
 			{
-				WriteFileMap[rtn] = { &FileMap[rtn], dwDesiredAccess, dwShareMode, dwCreationDisposition, dwFlagsAndAttributes, shadow };
-				PLOGD << "CreateFileW->FileName:" << c
-					<< ",  Handle:" << rtn
-					<< ", dwDesiredAccess:" << dwDesiredAccess
-					<< ",  dwShareMode:" << dwShareMode
-					<< ",  dwCreationDisposition:" << dwCreationDisposition
-					<< ",  dwFlagsAndAttributes:" << dwFlagsAndAttributes << endl;
+				if (Lv > Critial)
+					WriteFileMap[rtn] = { &FileMap[rtn], dwDesiredAccess, dwShareMode, dwCreationDisposition, dwFlagsAndAttributes, shadow };
+				if (Lv > Extra)
+					PLOGD << "CreateFileW->FileName:" << c
+						<< ",  Handle:" << rtn
+						<< ", dwDesiredAccess:" << dwDesiredAccess
+						<< ",  dwShareMode:" << dwShareMode
+						<< ",  dwCreationDisposition:" << dwCreationDisposition
+						<< ",  dwFlagsAndAttributes:" << dwFlagsAndAttributes << endl;
 			}
 		}
 	}
@@ -257,9 +262,10 @@ BOOL WINAPI MyFileApi::MyReadFile(
 	else
 		c = FileMap[hFile];
 	if (c.find(L"my.log") == c.npos && c.find(L"MountPointManager") == c.npos)
-		PLOGD << "ReadFile->FileName:" << c
-			<< ", NumberOfBytesRead:" << *lpNumberOfBytesRead
-			<< ", Status:" << rtn << std::endl;
+		if(Lv > Critial)
+			PLOGD << "ReadFile->FileName:" << c
+				<< ", NumberOfBytesRead:" << *lpNumberOfBytesRead
+				<< ", Status:" << rtn << std::endl;
 	return rtn;
 }
 
@@ -281,9 +287,10 @@ BOOL WINAPI MyFileApi::MyReadFileEx(
 	else
 		c = FileMap[hFile];
 	if (c.find(L"my.log") == c.npos && c.find(L"MountPointManager") == c.npos)
-		PLOGD << "ReadFileEx->FileName:" << c
-		<< ", NumberOfBytesToRead:" << nNumberOfBytesToRead
-		<< ", Status:" << rtn << std::endl;
+		if(Lv > Critial)
+			PLOGD << "ReadFileEx->FileName:" << c
+			<< ", NumberOfBytesToRead:" << nNumberOfBytesToRead
+			<< ", Status:" << rtn << std::endl;
 	return rtn;
 }
 
@@ -300,9 +307,11 @@ BOOL WINAPI MyFileApi::MyWriteFile(
 	if (WriteFileMap.find(hFile) != WriteFileMap.end())
 	{
 		WT* tmp = &WriteFileMap[hFile];
-		PLOGD << "WriteFile->FileName:" << *(tmp->lpFileName)
-			<< "  ,Handle:" << hFile << endl;
-		WriteFile(tmp->Shadow, lpBuffer, nNumberOfBytesToWrite, lpNumberOfBytesWritten, lpOverlapped);
+		if(Lv > None)
+			PLOGD << "WriteFile->FileName:" << *(tmp->lpFileName)
+				<< "  ,Handle:" << hFile << endl;
+		if(Lv > Critial )
+			WriteFile(tmp->Shadow, lpBuffer, nNumberOfBytesToWrite, lpNumberOfBytesWritten, lpOverlapped);
 	}
 	/*
 	if (FileMap.find(hFile) == FileMap.end())
@@ -357,14 +366,12 @@ BOOL WINAPI MyFileApi::MyWriteFileEx(
 	if (WriteFileMap.find(hFile) != WriteFileMap.end())
 	{
 		WT* tmp = &WriteFileMap[hFile];
-		PLOGD << "WriteFileEx->FileName:" << *(tmp->lpFileName)
-			<< "  ,Handle:" << hFile << endl;
-		WriteFileEx(tmp->Shadow, lpBuffer, nNumberOfBytesToWrite, lpOverlapped, lpCompletionRoutine);
+		if(Lv > None)
+			PLOGD << "WriteFileEx->FileName:" << *(tmp->lpFileName)
+				<< "  ,Handle:" << hFile << endl;
+		if(Lv > Critial)
+			WriteFileEx(tmp->Shadow, lpBuffer, nNumberOfBytesToWrite, lpOverlapped, lpCompletionRoutine);
 	}
-	if (c.find(L"my.log") == c.npos && c.find(L"MountPointManager") == c.npos)
-		PLOGD << "WriteFile->FileName:" << c
-		<< ", NumberOfBytesWritten:" << nNumberOfBytesToWrite
-		<< ", Status:" << rtn << std::endl;
 	return rtn;
 }
 
@@ -373,8 +380,9 @@ BOOL WINAPI MyFileApi::MyDeleteFileA(
 )
 {
 	BOOL rtn =  DeleteFileA(lpFileName);
-	PLOGD << "DeleteFileA->FileName:" << sc(lpFileName)
-	<< ", Status:" << rtn << endl;
+	if(Lv > None)
+		PLOGD << "DeleteFileA->FileName:" << sc(lpFileName)
+		<< ", Status:" << rtn << endl;
 	return rtn;
 }
 
@@ -383,8 +391,9 @@ BOOL WINAPI MyFileApi::MyDeleteFileW(
 )
 {
 	BOOL rtn = DeleteFileW(lpFileName);
-	PLOGD << "DeleteFileW->FileName:" << sc(lpFileName)
-	<<", Status:" << rtn<<endl;
+	if(Lv > None)
+		PLOGD << "DeleteFileW->FileName:" << sc(lpFileName)
+		<<", Status:" << rtn<<endl;
 	return rtn;
 }
 
@@ -394,9 +403,10 @@ BOOL WINAPI MyFileApi::MyMoveFileA(
 )
 {
 	bool rtn =  MoveFileA(lpExistingFileName, lpNewFileName);
-	PLOGD << "MoveFileA->From:" << sc(lpExistingFileName)
-	<< ", TO:" << lpNewFileName
-	<< ", Status:" << rtn << endl;
+	if(Lv > None)
+		PLOGD << "MoveFileA->From:" << sc(lpExistingFileName)
+		<< ", TO:" << lpNewFileName
+		<< ", Status:" << rtn << endl;
 	return rtn;
 }
 
@@ -406,9 +416,10 @@ BOOL WINAPI MyFileApi::MyMoveFileW(
 )
 {
 	bool rtn = MoveFileW(lpExistingFileName, lpNewFileName);
-	PLOGD << "MoveFileA->From:" << sc(lpExistingFileName)
-	<< ", TO:" << sc(lpNewFileName)
-	<< ", Status:" << rtn << endl;
+	if (Lv > None)
+		PLOGD << "MoveFileA->From:" << sc(lpExistingFileName)
+		<< ", TO:" << sc(lpNewFileName)
+		<< ", Status:" << rtn << endl;
 	return rtn;
 }
 
@@ -419,9 +430,10 @@ BOOL WINAPI MyFileApi::MyMoveFileExA(
 )
 {
 	bool rtn = MoveFileExA(lpExistingFileName, lpNewFileName, dwFlags);
-	PLOGD << "MoveFileA->From:" << sc(lpExistingFileName)
-	<< ", TO:" << sc(lpNewFileName)
-	<< ", Status:" << rtn << endl;
+	if (Lv > None)
+		PLOGD << "MoveFileA->From:" << sc(lpExistingFileName)
+		<< ", TO:" << sc(lpNewFileName)
+		<< ", Status:" << rtn << endl;
 	return rtn;
 }
 
@@ -432,9 +444,10 @@ BOOL WINAPI MyFileApi::MyMoveFileExW(
 )
 {
 	bool rtn = MoveFileExW(lpExistingFileName, lpNewFileName, dwFlags);
-	PLOGD << "MoveFileA->From:" << sc(lpExistingFileName)
-	<< ", TO:" << sc(lpNewFileName)
-	<< ", Status:" << rtn << endl;
+	if (Lv > None)
+		PLOGD << "MoveFileA->From:" << sc(lpExistingFileName)
+		<< ", TO:" << sc(lpNewFileName)
+		<< ", Status:" << rtn << endl;
 	return rtn;
 }
 

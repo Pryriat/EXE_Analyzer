@@ -7,6 +7,7 @@ using std::wstring;
 class MyProcessApi
 {
 public:
+    static Level Lv;
     static BOOL ProcessApiEnable;
     static HOOK_TRACE_INFO CreateProcessAHook;
     static HOOK_TRACE_INFO CreateProcessWHook;
@@ -19,6 +20,10 @@ public:
     static std::map<HANDLE, std::wstring> ProcMap;
     static std::map<HANDLE, std::wstring> ThreadMap;
     static void* out;
+    static void SetLv(Level Lv)
+    {
+        MyProcessApi::Lv = Lv;
+    }
     static BOOL WINAPI MyCreateProcessA(
         LPCSTR                lpApplicationName,
         LPSTR                 lpCommandLine,
@@ -95,6 +100,7 @@ public:
     static inline void InitProcessApi64();
 };
 
+Level MyProcessApi::Lv = Debug;
 
 BOOL MyProcessApi::ProcessApiEnable = true;
 
@@ -125,9 +131,10 @@ BOOL WINAPI MyProcessApi::MyCreateProcessA(
 {
     BOOL rtn = CreateProcessA(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes,
         bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
-    PLOGD << "CreateProcessA->AppName:" << sc(lpApplicationName)
-        << ", Commandline:" << sc(lpCommandLine)
-        << ", Status:" << rtn << endl;
+    if(Lv > None)
+        PLOGD << "CreateProcessA->AppName:" << sc(lpApplicationName)
+            << ", Commandline:" << sc(lpCommandLine)
+            << ", Status:" << rtn << endl;
     if (rtn)
     {
         NTSTATUS nt = RhInjectLibrary(lpProcessInformation->dwProcessId, 0, EASYHOOK_INJECT_DEFAULT, NULL, const_cast<WCHAR*>(L".\\x64\\Debug\\hook.dll"), NULL, 0);
@@ -159,9 +166,10 @@ BOOL WINAPI MyProcessApi::MyCreateProcessW(
     if (rtn)
     {
         NTSTATUS nt = RhInjectLibrary(lpProcessInformation->dwProcessId, 0, EASYHOOK_INJECT_DEFAULT, NULL, const_cast<WCHAR*>(L".\\x64\\Debug\\hook.dll"), NULL, 0);
-        PLOGD << "CreateProcessW->AppName:" << sc(lpApplicationName)
-            << ", Commandline:" << sc(lpCommandLine)
-            << ", Status:" << rtn << endl;
+        if (Lv > None)
+            PLOGD << "CreateProcessW->AppName:" << sc(lpApplicationName)
+                << ", Commandline:" << sc(lpCommandLine)
+                << ", Status:" << rtn << endl;
         if (ERROR(nt))
             PLOGD << RtlGetLastErrorString() << endl;
         else
@@ -185,11 +193,11 @@ HANDLE WINAPI MyProcessApi::MyCreateRemoteThread(
 )
 {
     HANDLE rtn = CreateRemoteThread(hProcess, lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, lpThreadId);
-    if (lpThreadId != NULL)
-        PLOGD << "CreateRemoteThread->TargetApp:" << GetProcessNameByHandle(hProcess)
-            << ", ThreadId:" << *lpThreadId 
-            <<", StartAddress:"<< reinterpret_cast<ULONG>(lpStartAddress)<<endl;
-    else
+    if (lpThreadId != NULL && Lv > None)
+            PLOGD << "CreateRemoteThread->TargetApp:" << GetProcessNameByHandle(hProcess)
+                << ", ThreadId:" << *lpThreadId 
+                <<", StartAddress:"<< reinterpret_cast<ULONG>(lpStartAddress)<<endl;
+    else if (Lv > None)
         PLOGD << "CreateRemoteThread->TargetApp:" << GetProcessNameByHandle(hProcess)
         << ", StartAddress:" << reinterpret_cast<ULONG>(lpStartAddress) << endl;
     return rtn;
@@ -207,11 +215,11 @@ HANDLE WINAPI MyProcessApi::MyCreateRemoteThreadEx(
 )
 {
     HANDLE rtn = CreateRemoteThreadEx(hProcess, lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, lpAttributeList, lpThreadId);
-    if(lpThreadId != NULL)
+    if(lpThreadId != NULL && Lv > None)
         PLOGD << "CreateRemoteThreadEx->TargetApp:" << GetProcessNameByHandle(hProcess)
             << ", ThreadId: " << *lpThreadId 
             << ", StartAddress:" << reinterpret_cast<ULONG>(lpStartAddress) << endl;
-    else
+    else if(Lv > None)
         PLOGD << "CreateRemoteThreadEx->TargetApp:" << GetProcessNameByHandle(hProcess)
         << ", StartAddress:" << reinterpret_cast<ULONG>(lpStartAddress) << endl;
    //void (*fp)(std::wstring in) = reinterpret_cast<void (*) (std::wstring in)>(MyProcessApi::out);
@@ -229,10 +237,10 @@ HANDLE WINAPI MyProcessApi::MyCreateThread(
 )
 {
     HANDLE rtn = CreateThread(lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, lpThreadId);
-    if(lpThreadId)
+    if(lpThreadId && Lv > Critial)
         PLOGD << "CreateThread->ThreadId: " << *lpThreadId
             << ", StartAddress:" << reinterpret_cast<ULONG>(lpStartAddress) << endl;
-    else
+    else if(Lv>Critial)
         PLOGD << "CreateThread->"
         << ", StartAddress:" << reinterpret_cast<ULONG>(lpStartAddress) << endl;
     return rtn;
@@ -248,7 +256,7 @@ HANDLE WINAPI MyProcessApi::MyOpenProcess(
     if (rtn != NULL)
     {
         std::wstring c = GetProcessNameByHandle(rtn);
-        if (dwProcessId != GetCurrentProcessId() && c.size()>0)
+        if (dwProcessId != GetCurrentProcessId() && c.size()>0 && Lv>Critial)
             PLOGD << "OpenProcess->TargetApp:" << c << endl;
     }
     //void (*fp)(std::wstring in) = reinterpret_cast<void (*) (std::wstring in)>(MyProcessApi::out);
@@ -263,7 +271,7 @@ HANDLE WINAPI MyProcessApi::MyOpenThread(
 )
 {
     HANDLE rtn = OpenThread(dwDesiredAccess, bInheritHandle, dwThreadId);
-    if(dwThreadId != GetCurrentThreadId())
+    if(dwThreadId != GetCurrentThreadId() && Lv > Critial)
         PLOGD << "OpenThread->TargetApp:" << GetProcessNameByHandle(GetCurrentProcess()) << endl;
     return rtn;
 }
@@ -274,18 +282,20 @@ BOOL WINAPI MyProcessApi::MyTerminateProcess(
 )
 {
     BOOL rtn = TerminateProcess(hProcess, uExitCode);
-    PLOGD << "TerMinateProcess->TargetApp:" << GetProcessNameByHandle(hProcess)
-        << ", ExitCode:" << uExitCode
-        << ", Status:" << rtn<<endl;
+    if(Lv > None)
+        PLOGD << "TerMinateProcess->TargetApp:" << GetProcessNameByHandle(hProcess)
+            << ", ExitCode:" << uExitCode
+            << ", Status:" << rtn<<endl;
     return rtn;
 }
 
 BOOL WINAPI MyProcessApi::MyTerminateThread(HANDLE hThread, DWORD dwExitCode)
 {
     BOOL rtn = TerminateThread(hThread, dwExitCode);
-    PLOGD << "TerMinateProcess->TargetApp:" << GetProcessNameByHandle(GetCurrentProcess())
-        << ", ExitCode:" << dwExitCode
-        << ", Status:" << rtn << endl;
+    if(Lv > Critial)
+        PLOGD << "TerMinateProcess->TargetApp:" << GetProcessNameByHandle(GetCurrentProcess())
+            << ", ExitCode:" << dwExitCode
+            << ", Status:" << rtn << endl;
     return rtn;
 }
 
