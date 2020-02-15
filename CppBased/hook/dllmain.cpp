@@ -15,14 +15,23 @@ void __stdcall NativeInjectionEntryPoint(REMOTE_ENTRY_INFO* inRemoteInfo)
 	std::string log_file = getenv("USERPROFILE");
 	log_file += "\\Desktop\\my.log";
 	plog::init(plog::debug, log_file.c_str());
+	WSADATA WSA;
+	WORD socketVersion = MAKEWORD(2, 2);
+	if (::WSAStartup(socketVersion, &WSA) != 0)
+	{
+		PLOGE << "Init socket dll error\n";
+		exit(1);
+	}
+	else
+		PLOGD << "WSA Init"<<endl;
 	MyFileApi::SetLv(Debug);
 	MyProcessApi::SetLv(Debug);
 	MyWinNetApi::SetLv(Debug);
 	MyRegApi::SetLv(Debug);
-	MyFileApi::InitFileApi32();
-	MyProcessApi::InitProcessApi32();
-	MyRegApi::InitRegApi();
-	MyWinNetApi::InitWinNetApi();
+	//MyFileApi::InitFileApi32();
+	MyProcessApi::InitProcessApi64();
+	//MyRegApi::InitRegApi();
+	//MyWinNetApi::InitWinNetApi();
 	//InitFileApi64();
 	//InitProcessApi64();
 	//InitWinNetApi64();

@@ -36,6 +36,10 @@ struct WT
 	DWORD                 dwFlagsAndAttributes;
 	HANDLE                Shadow;
 };
+typedef struct MessageContent
+{
+	std::wstring in;
+}MC, * PMC;
 std::string cn = "None";
 std::wstring wn = L"None";
 std::wstring inline GetLastErrorAsString(DWORD ErrorCode)

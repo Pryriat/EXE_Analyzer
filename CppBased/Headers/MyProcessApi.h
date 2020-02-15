@@ -1,14 +1,27 @@
 #pragma once
 #include"Global.h"
+#include<WinSock2.h>
+#pragma comment(lib, "Ws2_32.lib")
+#include <comdef.h>
 using std::endl;
 using std::map;
 using std::wstring;
 
+typedef struct Message
+{
+    char Processname[260];
+    char Data[5000];
+}MS, *PMS;
+SOCKADDR_IN addr_Clt;
+sockaddr_in servAddr;
+std::string buffer;
+void UDPSend(const char* ProcessName, const SIZE_T& ProcessNameLength, const char* Data, const SIZE_T& DataLength);
 class MyProcessApi
 {
 public:
     static Level Lv;
     static BOOL ProcessApiEnable;
+    static SOCKET MyProcessApiSocket;
     static HOOK_TRACE_INFO CreateProcessAHook;
     static HOOK_TRACE_INFO CreateProcessWHook;
     static HOOK_TRACE_INFO CreateRemoteThreadHook;
@@ -24,6 +37,7 @@ public:
     {
         MyProcessApi::Lv = Lv;
     }
+
     static BOOL WINAPI MyCreateProcessA(
         LPCSTR                lpApplicationName,
         LPSTR                 lpCommandLine,
@@ -99,6 +113,7 @@ public:
     }
     static inline void InitProcessApi64();
     static inline void InitProcessApi32();
+    static inline bool InitSocket();
 };
 
 Level MyProcessApi::Lv = Debug;
@@ -116,7 +131,7 @@ HOOK_TRACE_INFO MyProcessApi::TerminateThreadHook;
 map<HANDLE, wstring> MyProcessApi::ProcMap;
 map<HANDLE, wstring> MyProcessApi::ThreadMap;
 void* MyProcessApi::out = NULL;
-
+SOCKET MyProcessApi::MyProcessApiSocket;
 BOOL WINAPI MyProcessApi::MyCreateProcessA(
     LPCSTR                lpApplicationName,
     LPSTR                 lpCommandLine,
@@ -164,6 +179,14 @@ BOOL WINAPI MyProcessApi::MyCreateProcessW(
 {
     BOOL rtn = CreateProcessW(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes,
         bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
+    std::string q = "CreateProcessW:";
+    q += std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(sc(lpApplicationName))+"\n";
+    buffer += q;
+    if (buffer.size() > 2048)
+    {
+        std::string processname = std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(sc(lpApplicationName));
+        UDPSend(processname.c_str(), processname.size(), buffer.c_str(), buffer.size());
+    }
     if (rtn)
     {
         NTSTATUS nt = RhInjectLibrary(lpProcessInformation->dwProcessId, 0, EASYHOOK_INJECT_DEFAULT, const_cast<WCHAR*>(L".\\Debug\\hook.dll"), const_cast<WCHAR*>(L".\\x64\\Debug\\hook.dll"), NULL, 0);
@@ -214,6 +237,14 @@ HANDLE WINAPI MyProcessApi::MyCreateRemoteThreadEx(
 )
 {
     HANDLE rtn = CreateRemoteThreadEx(hProcess, lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, lpAttributeList, lpThreadId);
+    std::string name = "CreateThreadEx:";
+    name += std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(GetProcessNameByHandle(hProcess))+"\n";
+    buffer += name;
+    if (buffer.size() > 2048)
+    {
+        std::string processname = std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(GetProcessNameByHandle(hProcess));
+        UDPSend(processname.c_str(), processname.size(), buffer.c_str(), buffer.size());
+    }
     if(lpThreadId != NULL && Lv > None)
         PLOGD << "CreateRemoteThreadEx->TargetApp:" << GetProcessNameByHandle(hProcess)
             << ", ThreadId: " << *lpThreadId 
@@ -314,6 +345,10 @@ inline void MyProcessApi::InitProcessApi64()
     Check("OpenProcess" ,LhSetExclusiveACL(ACLEntries, 1, &MyProcessApi::OpenProcessHook));
     Check("TerminateProcess" ,LhSetExclusiveACL(ACLEntries, 1, &MyProcessApi::TerminateProcessHook));
     Check("TerminateThread" ,LhSetExclusiveACL(ACLEntries, 1, &MyProcessApi::TerminateThreadHook));
+    if (InitSocket())
+        PLOGD << "Socket Init Success" << endl;
+    else
+        PLOGD << "Socket Init Failed" << endl;
 }
 
 inline void MyProcessApi::InitProcessApi32()
@@ -336,4 +371,40 @@ inline void MyProcessApi::InitProcessApi32()
     Check("OpenProcess", LhSetExclusiveACL(ACLEntries, 1, &MyProcessApi::OpenProcessHook));
     Check("TerminateProcess", LhSetExclusiveACL(ACLEntries, 1, &MyProcessApi::TerminateProcessHook));
     Check("TerminateThread", LhSetExclusiveACL(ACLEntries, 1, &MyProcessApi::TerminateThreadHook));
+    if (InitSocket())
+        PLOGD << "Socket Init Success" << endl;
+    else
+        PLOGD << "Socket Init Failed" << endl;
+}
+
+inline bool MyProcessApi::InitSocket()
+{
+    if (SOCKET_ERROR == (MyProcessApi::MyProcessApiSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)))
+    {
+        PLOGE<<("Init socket error\n");
+        return false;
+    }
+    servAddr.sin_family = AF_INET;
+    servAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    servAddr.sin_port = htons((short)9999);
+    int	nServAddlen = sizeof(servAddr);
+    return true;
+}
+
+void UDPSend(const char* ProcessName, const SIZE_T& ProcessNameLength, const char* Data, const SIZE_T& DataLength)
+{
+    if (ProcessName == NULL || Data == NULL)
+        PLOGE << "Data NULL" << endl;
+    else if (ProcessNameLength > 260 || DataLength > 5000)
+        PLOGE << "Data too long" << endl;
+    else
+    {
+        Message tmp = { 0 };
+        memcpy(tmp.Processname, ProcessName, ProcessNameLength);
+        memcpy(tmp.Data, Data, DataLength);
+        if (sendto(MyProcessApi::MyProcessApiSocket, (char*)&tmp, sizeof(Message), 0, (SOCKADDR*)&servAddr, sizeof(SOCKADDR)) == SOCKET_ERROR)
+            PLOGE << RtlGetLastErrorString() << endl;
+        else
+            buffer.clear();
+    }
 }
