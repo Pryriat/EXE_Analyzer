@@ -6,22 +6,18 @@
 using std::endl;
 using std::map;
 using std::wstring;
+using std::string;
 
-typedef struct Message
-{
-    char Processname[260];
-    char Data[5000];
-}MS, *PMS;
-SOCKADDR_IN addr_Clt;
-sockaddr_in servAddr;
-std::string buffer;
-void UDPSend(const char* ProcessName, const SIZE_T& ProcessNameLength, const char* Data, const SIZE_T& DataLength);
+
+std::wstring buffer;
 class MyProcessApi
 {
 public:
     static Level Lv;
     static BOOL ProcessApiEnable;
     static SOCKET MyProcessApiSocket;
+    static string ProcName;
+    static wstring WProcName;
     static HOOK_TRACE_INFO CreateProcessAHook;
     static HOOK_TRACE_INFO CreateProcessWHook;
     static HOOK_TRACE_INFO CreateRemoteThreadHook;
@@ -113,13 +109,13 @@ public:
     }
     static inline void InitProcessApi64();
     static inline void InitProcessApi32();
-    static inline bool InitSocket();
 };
 
 Level MyProcessApi::Lv = Debug;
 
 BOOL MyProcessApi::ProcessApiEnable = true;
-
+string MyProcessApi::ProcName;
+wstring MyProcessApi::WProcName;
 HOOK_TRACE_INFO MyProcessApi::CreateProcessAHook;
 HOOK_TRACE_INFO MyProcessApi::CreateProcessWHook;
 HOOK_TRACE_INFO MyProcessApi::CreateRemoteThreadHook;
@@ -179,13 +175,12 @@ BOOL WINAPI MyProcessApi::MyCreateProcessW(
 {
     BOOL rtn = CreateProcessW(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes,
         bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
-    std::string q = "CreateProcessW:";
-    q += std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(sc(lpApplicationName))+"\n";
-    buffer += q;
+    buffer += L"CreateProcessW->"+ wstring(sc(lpApplicationName))+L"\n";
     if (buffer.size() > 2048)
     {
-        std::string processname = std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(sc(lpApplicationName));
-        UDPSend(processname.c_str(), processname.size(), buffer.c_str(), buffer.size());
+        std::string tmp = std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(buffer);
+        UDPSend(ProcName.c_str(), ProcName.size(),tmp.c_str(), tmp.size());
+        buffer.clear();
     }
     if (rtn)
     {
@@ -237,13 +232,12 @@ HANDLE WINAPI MyProcessApi::MyCreateRemoteThreadEx(
 )
 {
     HANDLE rtn = CreateRemoteThreadEx(hProcess, lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, lpAttributeList, lpThreadId);
-    std::string name = "CreateThreadEx:";
-    name += std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(GetProcessNameByHandle(hProcess))+"\n";
-    buffer += name;
+    buffer += L"CreateRemoteThread->"+ GetProcessNameByHandle(hProcess)+L"\n";
     if (buffer.size() > 2048)
     {
-        std::string processname = std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(GetProcessNameByHandle(hProcess));
-        UDPSend(processname.c_str(), processname.size(), buffer.c_str(), buffer.size());
+        std::string tmp = std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(buffer);
+        UDPSend(ProcName.c_str(), ProcName.size(), tmp.c_str(), tmp.size());
+        buffer.clear();
     }
     if(lpThreadId != NULL && Lv > None)
         PLOGD << "CreateRemoteThreadEx->TargetApp:" << GetProcessNameByHandle(hProcess)
@@ -283,6 +277,13 @@ HANDLE WINAPI MyProcessApi::MyOpenProcess(
     HANDLE rtn = OpenProcess(dwDesiredAccess, bInheritHandle, dwProcessId);
     if (rtn != NULL)
     {
+        buffer += L"OpenProcess->" + GetProcessNameByHandle(rtn) + L"\n";
+        if (buffer.size() > 2048)
+        {
+            std::string tmp = std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(buffer);
+            UDPSend(ProcName.c_str(), ProcName.size(), tmp.c_str(), tmp.size());
+            buffer.clear();
+        }
         std::wstring c = GetProcessNameByHandle(rtn);
         if (dwProcessId != GetCurrentProcessId() && c.size()>0 && Lv>Critial)
             PLOGD << "OpenProcess->TargetApp:" << c << endl;
@@ -345,10 +346,6 @@ inline void MyProcessApi::InitProcessApi64()
     Check("OpenProcess" ,LhSetExclusiveACL(ACLEntries, 1, &MyProcessApi::OpenProcessHook));
     Check("TerminateProcess" ,LhSetExclusiveACL(ACLEntries, 1, &MyProcessApi::TerminateProcessHook));
     Check("TerminateThread" ,LhSetExclusiveACL(ACLEntries, 1, &MyProcessApi::TerminateThreadHook));
-    if (InitSocket())
-        PLOGD << "Socket Init Success" << endl;
-    else
-        PLOGD << "Socket Init Failed" << endl;
 }
 
 inline void MyProcessApi::InitProcessApi32()
@@ -371,40 +368,9 @@ inline void MyProcessApi::InitProcessApi32()
     Check("OpenProcess", LhSetExclusiveACL(ACLEntries, 1, &MyProcessApi::OpenProcessHook));
     Check("TerminateProcess", LhSetExclusiveACL(ACLEntries, 1, &MyProcessApi::TerminateProcessHook));
     Check("TerminateThread", LhSetExclusiveACL(ACLEntries, 1, &MyProcessApi::TerminateThreadHook));
-    if (InitSocket())
-        PLOGD << "Socket Init Success" << endl;
-    else
-        PLOGD << "Socket Init Failed" << endl;
+    MyProcessApi::WProcName = GetProcessNameByHandle(GetCurrentProcess());
+    MyProcessApi::ProcName = std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(GetProcessNameByHandle(GetCurrentProcess()));
+
 }
 
-inline bool MyProcessApi::InitSocket()
-{
-    if (SOCKET_ERROR == (MyProcessApi::MyProcessApiSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)))
-    {
-        PLOGE<<("Init socket error\n");
-        return false;
-    }
-    servAddr.sin_family = AF_INET;
-    servAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    servAddr.sin_port = htons((short)9999);
-    int	nServAddlen = sizeof(servAddr);
-    return true;
-}
 
-void UDPSend(const char* ProcessName, const SIZE_T& ProcessNameLength, const char* Data, const SIZE_T& DataLength)
-{
-    if (ProcessName == NULL || Data == NULL)
-        PLOGE << "Data NULL" << endl;
-    else if (ProcessNameLength > 260 || DataLength > 5000)
-        PLOGE << "Data too long" << endl;
-    else
-    {
-        Message tmp = { 0 };
-        memcpy(tmp.Processname, ProcessName, ProcessNameLength);
-        memcpy(tmp.Data, Data, DataLength);
-        if (sendto(MyProcessApi::MyProcessApiSocket, (char*)&tmp, sizeof(Message), 0, (SOCKADDR*)&servAddr, sizeof(SOCKADDR)) == SOCKET_ERROR)
-            PLOGE << RtlGetLastErrorString() << endl;
-        else
-            buffer.clear();
-    }
-}

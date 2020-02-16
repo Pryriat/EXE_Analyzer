@@ -12,6 +12,8 @@
 #include<synchapi.h>
 #include<plog/Log.h>
 #include<plog/Record.h>
+#include<WinSock2.h>
+#pragma comment(lib, "Ws2_32.lib")
 #pragma  comment(lib,"Wininet.lib")
 #pragma  comment(lib,"Psapi.lib")
 #if _WIN64
@@ -27,6 +29,7 @@ enum Level
 	Extra,
 	Debug
 };
+
 struct WT
 {
 	std::wstring*               lpFileName;
@@ -36,12 +39,24 @@ struct WT
 	DWORD                 dwFlagsAndAttributes;
 	HANDLE                Shadow;
 };
-typedef struct MessageContent
+
+typedef struct Message
 {
-	std::wstring in;
-}MC, * PMC;
+	DWORD type;
+	char Processname[560];
+	char Data[50000];
+}MS, * PMS;
+
 std::string cn = "None";
 std::wstring wn = L"None";
+
+
+WSADATA WSA;
+WORD socketVersion = MAKEWORD(2, 2);
+SOCKADDR_IN addr_Clt;
+sockaddr_in servAddr;
+SOCKET GlobalSocket;
+
 std::wstring inline GetLastErrorAsString(DWORD ErrorCode)
 {
 	WCHAR* text;
@@ -130,4 +145,25 @@ inline LPCWSTR sc(LPCWSTR in)
 	if (in == NULL)
 		return wn.c_str();
 	return in;
+}
+
+inline bool UDPSend(const char* ProcessName, const SIZE_T& ProcessNameLength, const char* Data, const SIZE_T& DataLength)
+{
+	if (ProcessName == NULL || Data == NULL)
+		PLOGE << "Data NULL\n";
+	else if (ProcessNameLength > 500 || DataLength > 50000)
+		PLOGE << "Data too long\n";
+	else
+	{
+		Message tmp = { 0 };
+		memcpy(tmp.Processname, ProcessName, ProcessNameLength);
+		memcpy(tmp.Data, Data, DataLength);
+		if (sendto(GlobalSocket, (char*)&tmp, sizeof(Message), 0, (SOCKADDR*)&servAddr, sizeof(SOCKADDR)) == SOCKET_ERROR)
+		{
+			PLOGE << RtlGetLastErrorString() << std::endl;
+			return false;
+		}
+		return true;
+	}
+	return false;
 }

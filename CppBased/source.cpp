@@ -3,11 +3,8 @@
 #include <iostream>
 #include <string>
 #include<easyhook.h>
-#include<Global.h>
 #include <comdef.h>
 #include <stdio.h>
-
-#pragma comment(lib, "Ws2_32.lib")
 
 using std::wcout;
 using std::endl;
