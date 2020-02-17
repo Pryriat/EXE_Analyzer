@@ -4,12 +4,19 @@ using std::endl;
 using std::map;
 using std::wstring;
 using std::vector;
+using std::to_wstring;
 
 class MyFileApi
 {
 public:
+	static CRITICAL_SECTION CriticalLock;
+	static wstringstream Buffer;
+	static std::wstring_convert<std::codecvt_utf8<wchar_t>> WC;
 	static Level Lv;
-	static BOOL FileApiEnable;
+	static SOCKET FileSocket;
+	static SOCKADDR_IN FileServer;
+	static Message* FileMessage;
+	static wstring WProcName;
 	static std::wstring FilePrefix;
 	static vector<wstring> FileFilter;
 	static std::map<HANDLE, std::wstring> FileMap;
@@ -109,10 +116,15 @@ public:
 	);
 	static inline void InitFileApi64();
 	static inline void InitFileApi32();
+	static inline void UdpSend();
 };
-
-
-BOOL MyFileApi::FileApiEnable = true;
+CRITICAL_SECTION MyFileApi::CriticalLock;
+wstringstream MyFileApi::Buffer;
+wstring MyFileApi::WProcName;
+SOCKET MyFileApi::FileSocket;
+PMS MyFileApi::FileMessage;
+SOCKADDR_IN MyFileApi::FileServer;
+std::wstring_convert<std::codecvt_utf8<wchar_t>> MyFileApi::WC;
 std::wstring MyFileApi::FilePrefix = std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(getenv("USERPROFILE")) + L"\\Desktop\\Tmp\\";
 vector<wstring> MyFileApi::FileFilter = { L"my.log", L"MountPointManager" };
 std::map<HANDLE, std::wstring> MyFileApi::FileMap;
@@ -164,6 +176,7 @@ BOOL WINAPI MyFileApi::MyCloseHandle(
 {
 	if (FileMap.find(hObject) != FileMap.end())
 		FileMap.erase(hObject);
+	/*
 	if (WriteFileMap.find(hObject) != WriteFileMap.end())
 	{
 		if(Lv>Extra)
@@ -171,6 +184,7 @@ BOOL WINAPI MyFileApi::MyCloseHandle(
 		CloseHandle(WriteFileMap[hObject].Shadow);
 		WriteFileMap.erase(hObject);
 	}
+	*/
 	return CloseHandle(hObject);
 }
 
@@ -189,10 +203,10 @@ HANDLE WINAPI MyFileApi::MyCreateFileW(
 	if (rtn && !FILTER_FILE_JUD(c))
 	{
 		FileMap[rtn] = c;
+		/*
 		if (WRITE_FILE_JUD(dwDesiredAccess))
 		{
 			std::wstring tmp = FilePrefix + c.substr(c.find_last_of('\\') + 1);
-			/*
 			HANDLE shadow = CreateFileW(tmp.c_str(), dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
 			if (shadow != INVALID_HANDLE_VALUE)
 			{
@@ -200,14 +214,25 @@ HANDLE WINAPI MyFileApi::MyCreateFileW(
 					WriteFileMap[rtn] = { &FileMap[rtn], dwDesiredAccess, dwShareMode, dwCreationDisposition, dwFlagsAndAttributes, shadow };
 				
 			}
-			*/
-			if (Lv > Extra)
-				PLOGD << "CreateFileW->FileName:" << c
+		}
+		*/
+		if (Lv > Extra)
+		{
+			PLOGD << "CreateFileW->FileName:" << c
 				<< ",  Handle:" << rtn
 				<< ", dwDesiredAccess:" << dwDesiredAccess
 				<< ",  dwShareMode:" << dwShareMode
 				<< ",  dwCreationDisposition:" << dwCreationDisposition
 				<< ",  dwFlagsAndAttributes:" << dwFlagsAndAttributes << endl;
+			//EnterCriticalSection(&CriticalLock);
+			Buffer << L"CreateFileW->FileName:" << c
+				<< L",  Handle:" << to_wstring(reinterpret_cast<ULONG>(rtn))
+				<< L", dwDesiredAccess:" << to_wstring(dwDesiredAccess)
+				<< L",  dwShareMode:" << to_wstring(dwShareMode)
+				<< L",  dwCreationDisposition:" << to_wstring(dwCreationDisposition)
+				<< L",  dwFlagsAndAttributes:" << to_wstring(dwFlagsAndAttributes) << L"\n";
+			UdpSend();
+			//LeaveCriticalSection(&CriticalLock);
 		}
 	}
 	return rtn;
@@ -228,24 +253,38 @@ HANDLE WINAPI MyFileApi::MyCreateFileA(
 	if (rtn && !FILTER_FILE_JUD(c))
 	{
 		FileMap[rtn] = c;
+		/*
 		if (WRITE_FILE_JUD(dwDesiredAccess))
 		{
 			std::wstring tmp = FilePrefix + c.substr(c.find_last_of('\\') + 1);
 			HANDLE shadow = CreateFileW(tmp.c_str(), dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
-			/*
 			if (shadow != INVALID_HANDLE_VALUE)
 			{
 				if (Lv > Critial)
 					WriteFileMap[rtn] = { &FileMap[rtn], dwDesiredAccess, dwShareMode, dwCreationDisposition, dwFlagsAndAttributes, shadow };
 			}
-			*/
-			if (Lv > Extra)
-				PLOGD << "CreateFileW->FileName:" << c
+		}		_Gcount	8193	int
+
+		*/
+		
+		if (Lv > Extra)
+		{
+			
+			PLOGD << "CreateFileA->FileName:" << c
 				<< ",  Handle:" << rtn
 				<< ", dwDesiredAccess:" << dwDesiredAccess
 				<< ",  dwShareMode:" << dwShareMode
 				<< ",  dwCreationDisposition:" << dwCreationDisposition
 				<< ",  dwFlagsAndAttributes:" << dwFlagsAndAttributes << endl;
+			//EnterCriticalSection(&CriticalLock);
+			Buffer << L"CreateFileW->FileName:" << c
+				<< L",  Handle:" << to_wstring(reinterpret_cast<ULONG>(rtn))
+				<< L", dwDesiredAccess:" << to_wstring(dwDesiredAccess)
+				<< L",  dwShareMode:" << to_wstring(dwShareMode)
+				<< L",  dwCreationDisposition:" << to_wstring(dwCreationDisposition)
+				<< L",  dwFlagsAndAttributes:" << to_wstring(dwFlagsAndAttributes) << L"\n";
+			UdpSend();
+			//LeaveCriticalSection(&CriticalLock);
 		}
 	}
 	return rtn;
@@ -268,11 +307,24 @@ BOOL WINAPI MyFileApi::MyReadFile(
 	}
 	else
 		c = FileMap[hFile];
-	if (c.find(L"my.log") == c.npos && c.find(L"MountPointManager") == c.npos)
-		if(Lv > Critial)
+	if (c.find(L"my.log") == c.npos && c.find(L"MountPointManager") == c.npos)\
+	{
+		if (Lv > Critial)
+		{
+			
 			PLOGD << "ReadFile->FileName:" << c
 				<< ", NumberOfBytesRead:" << *lpNumberOfBytesRead
 				<< ", Status:" << rtn << std::endl;
+			//EnterCriticalSection(&CriticalLock);
+			Buffer << "ReadFile->FileName:" << c
+				<< ", NumberOfBytesRead:" << *lpNumberOfBytesRead
+				<< ", Status:" << rtn << L"\n";
+			UdpSend();
+			//LeaveCriticalSection(&CriticalLock);
+		}
+	}
+		
+			
 	return rtn;
 }
 
@@ -294,10 +346,21 @@ BOOL WINAPI MyFileApi::MyReadFileEx(
 	else
 		c = FileMap[hFile];
 	if (c.find(L"my.log") == c.npos && c.find(L"MountPointManager") == c.npos)
-		if(Lv > Critial)
+	{
+		if (Lv > Critial)
+		{
+			
 			PLOGD << "ReadFileEx->FileName:" << c
-			<< ", NumberOfBytesToRead:" << nNumberOfBytesToRead
-			<< ", Status:" << rtn << std::endl;
+				<< ", NumberOfBytesToRead:" << nNumberOfBytesToRead
+				<< ", Status:" << rtn << std::endl;
+			//EnterCriticalSection(&CriticalLock);
+			Buffer << "ReadFileEx->FileName:" << c
+				<< ", NumberOfBytesToRead:" << nNumberOfBytesToRead
+				<< ", Status:" << L"\n";
+			UdpSend();
+			//LeaveCriticalSection(&CriticalLock);
+		}
+	}
 	return rtn;
 }
 
@@ -311,6 +374,7 @@ BOOL WINAPI MyFileApi::MyWriteFile(
 {
 	std::wstring c;
 	BOOL rtn = WriteFile(hFile, lpBuffer, nNumberOfBytesToWrite, lpNumberOfBytesWritten, lpOverlapped);
+	/*
 	if (WriteFileMap.find(hFile) != WriteFileMap.end())
 	{
 		WT* tmp = &WriteFileMap[hFile];
@@ -320,11 +384,20 @@ BOOL WINAPI MyFileApi::MyWriteFile(
 		//if(Lv > Critial )
 			//WriteFile(tmp->Shadow, lpBuffer, nNumberOfBytesToWrite, lpNumberOfBytesWritten, lpOverlapped);
 	}
-	else if (FileMap.find(hFile) != FileMap.end())
+	*/
+	if (FileMap.find(hFile) != FileMap.end())
 	{
 		if (Lv > None)
+		{
+			
 			PLOGD << "WriteFile->FileName:" << FileMap[hFile]
 				<< "  ,Handle:" << hFile << endl;
+			//EnterCriticalSection(&CriticalLock);
+			Buffer << "WriteFile->FileName:" << FileMap[hFile]
+				<< "  ,Handle:" << hFile << L"\n";
+			UdpSend();
+			//LeaveCriticalSection(&CriticalLock);
+		}
 	}
 	/*
 	if (FileMap.find(hFile) == FileMap.end())
@@ -376,6 +449,7 @@ BOOL WINAPI MyFileApi::MyWriteFileEx(
 	}
 	else
 		c = FileMap[hFile];
+	/*
 	if (WriteFileMap.find(hFile) != WriteFileMap.end())
 	{
 		WT* tmp = &WriteFileMap[hFile];
@@ -385,11 +459,20 @@ BOOL WINAPI MyFileApi::MyWriteFileEx(
 		//if(Lv > Critial)
 			//WriteFileEx(tmp->Shadow, lpBuffer, nNumberOfBytesToWrite, lpOverlapped, lpCompletionRoutine);
 	}
-	else if (FileMap.find(hFile) != FileMap.end())
+	*/
+	if (FileMap.find(hFile) != FileMap.end())
 	{
 		if (Lv > None)
+		{
+			
 			PLOGD << "WriteFile->FileName:" << FileMap[hFile]
-			<< "  ,Handle:" << hFile << endl;
+				<< "  ,Handle:" << hFile << endl;
+			//EnterCriticalSection(&CriticalLock);
+			Buffer << "WriteFile->FileName:" << FileMap[hFile]
+				<< "  ,Handle:" << hFile << endl;
+			UdpSend();
+			//LeaveCriticalSection(&CriticalLock);
+		}
 	}
 	return rtn;
 }
@@ -399,9 +482,17 @@ BOOL WINAPI MyFileApi::MyDeleteFileA(
 )
 {
 	BOOL rtn =  DeleteFileA(lpFileName);
-	if(Lv > None)
+	if (Lv > None)
+	{
+		
 		PLOGD << "DeleteFileA->FileName:" << sc(lpFileName)
-		<< ", Status:" << rtn << endl;
+			<< ", Status:" << rtn << endl;
+		//EnterCriticalSection(&CriticalLock);
+		Buffer << "DeleteFileA->FileName:" << sc(lpFileName)
+			<< ", Status:" << rtn << endl;
+		UdpSend();
+		//LeaveCriticalSection(&CriticalLock);
+	}
 	return rtn;
 }
 
@@ -410,9 +501,17 @@ BOOL WINAPI MyFileApi::MyDeleteFileW(
 )
 {
 	BOOL rtn = DeleteFileW(lpFileName);
-	if(Lv > None)
+	if (Lv > None)
+	{
+		
 		PLOGD << "DeleteFileW->FileName:" << sc(lpFileName)
-		<<", Status:" << rtn<<endl;
+			<< ", Status:" << rtn << endl;
+		//EnterCriticalSection(&CriticalLock);
+		Buffer << "DeleteFileW->FileName:" << sc(lpFileName)
+			<< ", Status:" << rtn << endl;
+		UdpSend();
+		//LeaveCriticalSection(&CriticalLock);
+	}
 	return rtn;
 }
 
@@ -422,10 +521,19 @@ BOOL WINAPI MyFileApi::MyMoveFileA(
 )
 {
 	bool rtn =  MoveFileA(lpExistingFileName, lpNewFileName);
-	if(Lv > None)
+	if (Lv > None)
+	{
+		
 		PLOGD << "MoveFileA->From:" << sc(lpExistingFileName)
-		<< ", TO:" << lpNewFileName
-		<< ", Status:" << rtn << endl;
+			<< ", TO:" << lpNewFileName
+			<< ", Status:" << rtn << endl;
+		//EnterCriticalSection(&CriticalLock);
+		Buffer << "MoveFileA->From:" << sc(lpExistingFileName)
+			<< ", TO:" << lpNewFileName
+			<< ", Status:" << rtn << endl;
+		UdpSend();
+		//LeaveCriticalSection(&CriticalLock);
+	}
 	return rtn;
 }
 
@@ -436,9 +544,18 @@ BOOL WINAPI MyFileApi::MyMoveFileW(
 {
 	bool rtn = MoveFileW(lpExistingFileName, lpNewFileName);
 	if (Lv > None)
+	{
+		
 		PLOGD << "MoveFileA->From:" << sc(lpExistingFileName)
-		<< ", TO:" << sc(lpNewFileName)
-		<< ", Status:" << rtn << endl;
+			<< ", TO:" << sc(lpNewFileName)
+			<< ", Status:" << rtn << endl;
+		//EnterCriticalSection(&CriticalLock);
+		Buffer << "MoveFileA->From:" << sc(lpExistingFileName)
+			<< ", TO:" << sc(lpNewFileName)
+			<< ", Status:" << rtn << endl;
+		UdpSend();
+		//LeaveCriticalSection(&CriticalLock);
+	}
 	return rtn;
 }
 
@@ -450,9 +567,19 @@ BOOL WINAPI MyFileApi::MyMoveFileExA(
 {
 	bool rtn = MoveFileExA(lpExistingFileName, lpNewFileName, dwFlags);
 	if (Lv > None)
+	{
+		
 		PLOGD << "MoveFileA->From:" << sc(lpExistingFileName)
-		<< ", TO:" << sc(lpNewFileName)
-		<< ", Status:" << rtn << endl;
+			<< ", TO:" << sc(lpNewFileName)
+			<< ", Status:" << rtn << endl;
+		//EnterCriticalSection(&CriticalLock);
+		Buffer << "MoveFileA->From:" << sc(lpExistingFileName)
+			<< ", TO:" << sc(lpNewFileName)
+			<< ", Status:" << rtn << endl;
+		UdpSend();
+		//LeaveCriticalSection(&CriticalLock);
+	}
+		
 	return rtn;
 }
 
@@ -464,10 +591,39 @@ BOOL WINAPI MyFileApi::MyMoveFileExW(
 {
 	bool rtn = MoveFileExW(lpExistingFileName, lpNewFileName, dwFlags);
 	if (Lv > None)
+	{
+		
 		PLOGD << "MoveFileA->From:" << sc(lpExistingFileName)
-		<< ", TO:" << sc(lpNewFileName)
-		<< ", Status:" << rtn << endl;
+			<< ", TO:" << sc(lpNewFileName)
+			<< ", Status:" << rtn << endl;
+		//EnterCriticalSection(&CriticalLock);
+		Buffer << "MoveFileA->From:" << sc(lpExistingFileName)
+			<< ", TO:" << sc(lpNewFileName)
+			<< ", Status:" << rtn << endl;
+		UdpSend();
+		//LeaveCriticalSection(&CriticalLock);
+	}
 	return rtn;
+}
+inline void MyFileApi::UdpSend()
+{
+	const std::wstring& ws = Buffer.str();
+	if (ws.size() < 40000)
+		return;
+	else if (WProcName.size() > 500 || ws.size() > 50000)
+		PLOGE << "Data too long\n";
+	else
+	{
+		memset(FileMessage, 0, sizeof(Message));
+		FileMessage->type = 0;
+		memcpy(FileMessage->Processname, WC.to_bytes(WProcName).c_str(), WProcName.size());
+		memcpy(FileMessage->Data, WC.to_bytes(ws).c_str(), ws.size());
+		if (sendto(FileSocket, (char*)FileMessage, sizeof(Message), 0, (SOCKADDR*)&FileServer, sizeof(SOCKADDR)) == SOCKET_ERROR)
+			PLOGE << RtlGetLastErrorString() << std::endl;
+		else
+			Buffer.str(L"");
+	}
+	return;
 }
 
 inline void MyFileApi::InitFileApi64()
@@ -501,6 +657,15 @@ inline void MyFileApi::InitFileApi64()
 	Check("MoveFileExA", LhSetExclusiveACL(ACLEntries, 1, &MyFileApi::MoveFileExAHook));
 	Check("MoveFileExW", LhSetExclusiveACL(ACLEntries, 1, &MyFileApi::MoveFileExWHook));
 	Check("CloseHandle", LhSetExclusiveACL(ACLEntries, 1, &MyFileApi::CloseHandleHook));
+
+	if (SOCKET_ERROR == (MyFileApi::FileSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)))
+		PLOGE << "Init socket error" << endl;
+	MyFileApi::FileServer.sin_family = AF_INET;
+	MyFileApi::FileServer.sin_addr.s_addr = inet_addr("127.0.0.1");
+	MyFileApi::FileServer.sin_port = htons((short)9999);
+	MyFileApi::FileMessage = new Message;
+
+	InitializeCriticalSection(&CriticalLock);
 }
 
 inline void MyFileApi::InitFileApi32()

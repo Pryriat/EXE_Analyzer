@@ -7,17 +7,15 @@ using std::endl;
 using std::map;
 using std::wstring;
 using std::string;
+using std::to_wstring;
 
-
-std::wstring buffer;
 class MyProcessApi
 {
 public:
     static Level Lv;
     static BOOL ProcessApiEnable;
-    static SOCKET MyProcessApiSocket;
-    static string ProcName;
-    static wstring WProcName;
+    
+    static std::wstringstream Buffer;
     static HOOK_TRACE_INFO CreateProcessAHook;
     static HOOK_TRACE_INFO CreateProcessWHook;
     static HOOK_TRACE_INFO CreateRemoteThreadHook;
@@ -114,8 +112,7 @@ public:
 Level MyProcessApi::Lv = Debug;
 
 BOOL MyProcessApi::ProcessApiEnable = true;
-string MyProcessApi::ProcName;
-wstring MyProcessApi::WProcName;
+
 HOOK_TRACE_INFO MyProcessApi::CreateProcessAHook;
 HOOK_TRACE_INFO MyProcessApi::CreateProcessWHook;
 HOOK_TRACE_INFO MyProcessApi::CreateRemoteThreadHook;
@@ -126,8 +123,8 @@ HOOK_TRACE_INFO MyProcessApi::TerminateProcessHook;
 HOOK_TRACE_INFO MyProcessApi::TerminateThreadHook;
 map<HANDLE, wstring> MyProcessApi::ProcMap;
 map<HANDLE, wstring> MyProcessApi::ThreadMap;
-void* MyProcessApi::out = NULL;
-SOCKET MyProcessApi::MyProcessApiSocket;
+wstringstream MyProcessApi::Buffer;
+
 BOOL WINAPI MyProcessApi::MyCreateProcessA(
     LPCSTR                lpApplicationName,
     LPSTR                 lpCommandLine,
@@ -143,6 +140,12 @@ BOOL WINAPI MyProcessApi::MyCreateProcessA(
 {
     BOOL rtn = CreateProcessA(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes,
         bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
+
+    Buffer << L"CreateProcesA->AppName:" << std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(string(sc(lpApplicationName)))
+        <<  L"  ,CommandLine:" << std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(string(sc(lpCommandLine)))
+        << L"  ,Status:" << std::to_wstring(rtn) << L"\n";
+    //UDPSend(1, WProcName, Buffer);
+
     if(Lv > None)
         PLOGD << "CreateProcessA->AppName:" << sc(lpApplicationName)
             << ", Commandline:" << sc(lpCommandLine)
@@ -175,13 +178,11 @@ BOOL WINAPI MyProcessApi::MyCreateProcessW(
 {
     BOOL rtn = CreateProcessW(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes,
         bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
-    buffer += L"CreateProcessW->"+ wstring(sc(lpApplicationName))+L"\n";
-    if (buffer.size() > 2048)
-    {
-        std::string tmp = std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(buffer);
-        UDPSend(ProcName.c_str(), ProcName.size(),tmp.c_str(), tmp.size());
-        buffer.clear();
-    }
+    Buffer << L"CreateProcessW->" << wstring(sc(lpApplicationName))
+        << L"  ,CommandLine:" << sc(lpCommandLine)
+        << L"  ,Status:" << std::to_wstring(rtn) << L"\n";
+    //UDPSend(1, WProcName, Buffer);
+
     if (rtn)
     {
         NTSTATUS nt = RhInjectLibrary(lpProcessInformation->dwProcessId, 0, EASYHOOK_INJECT_DEFAULT, const_cast<WCHAR*>(L".\\Debug\\hook.dll"), const_cast<WCHAR*>(L".\\x64\\Debug\\hook.dll"), NULL, 0);
@@ -211,12 +212,23 @@ HANDLE WINAPI MyProcessApi::MyCreateRemoteThread(
 {
     HANDLE rtn = CreateRemoteThread(hProcess, lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, lpThreadId);
     if (lpThreadId != NULL && Lv > None)
-            PLOGD << "CreateRemoteThread->TargetApp:" << GetProcessNameByHandle(hProcess)
-                << ", ThreadId:" << *lpThreadId 
-                <<", StartAddress:"<< reinterpret_cast<ULONG>(lpStartAddress)<<endl;
-    else if (Lv > None)
+    {
         PLOGD << "CreateRemoteThread->TargetApp:" << GetProcessNameByHandle(hProcess)
-        << ", StartAddress:" << reinterpret_cast<ULONG>(lpStartAddress) << endl;
+            << ", ThreadId:" << *lpThreadId
+            << ", StartAddress:" << reinterpret_cast<ULONG>(lpStartAddress) << endl;
+        Buffer << L"CreateRemoteThread->TargetApp:" << GetProcessNameByHandle(hProcess)
+            << L", ThreadId:" << to_wstring(*lpThreadId)
+            << L", StartAddress:" << to_wstring(reinterpret_cast<ULONG>(lpStartAddress))<< L"\n";
+    }
+            
+    else if (Lv > None)
+    {
+        PLOGD << "CreateRemoteThread->TargetApp:" << GetProcessNameByHandle(hProcess)
+            << ", StartAddress:" << reinterpret_cast<ULONG>(lpStartAddress) << endl;
+       Buffer << L"CreateRemoteThread->TargetApp:" << GetProcessNameByHandle(hProcess)
+            << L", StartAddress:" << to_wstring(reinterpret_cast<ULONG>(lpStartAddress))<<L"\n";
+    }
+    //UDPSend(1, WProcName, Buffer);
     return rtn;
 }
 
@@ -232,20 +244,24 @@ HANDLE WINAPI MyProcessApi::MyCreateRemoteThreadEx(
 )
 {
     HANDLE rtn = CreateRemoteThreadEx(hProcess, lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, lpAttributeList, lpThreadId);
-    buffer += L"CreateRemoteThread->"+ GetProcessNameByHandle(hProcess)+L"\n";
-    if (buffer.size() > 2048)
+    if (lpThreadId != NULL && Lv > None)
     {
-        std::string tmp = std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(buffer);
-        UDPSend(ProcName.c_str(), ProcName.size(), tmp.c_str(), tmp.size());
-        buffer.clear();
-    }
-    if(lpThreadId != NULL && Lv > None)
         PLOGD << "CreateRemoteThreadEx->TargetApp:" << GetProcessNameByHandle(hProcess)
-            << ", ThreadId: " << *lpThreadId 
+            << ", ThreadId: " << *lpThreadId
             << ", StartAddress:" << reinterpret_cast<ULONG>(lpStartAddress) << endl;
-    else if(Lv > None)
+        Buffer << L"CreateRemoteThreadEx->TargetApp:" << GetProcessNameByHandle(hProcess)
+            << L", ThreadId: " << to_wstring(*lpThreadId)
+            << L", StartAddress:" << to_wstring(reinterpret_cast<ULONG>(lpStartAddress)) << L"\n";
+    }
+        
+    else if (Lv > None)
+    {
         PLOGD << "CreateRemoteThreadEx->TargetApp:" << GetProcessNameByHandle(hProcess)
-        << ", StartAddress:" << reinterpret_cast<ULONG>(lpStartAddress) << endl;
+            << ", StartAddress:" << reinterpret_cast<ULONG>(lpStartAddress) << endl;
+        Buffer << L"CreateRemoteThreadEx->TargetApp:" << GetProcessNameByHandle(hProcess)
+            << L", StartAddress:" << to_wstring(reinterpret_cast<ULONG>(lpStartAddress)) << L"\n";
+    }
+    //UDPSend(1, WProcName, Buffer);
     return rtn;
 }
 
@@ -259,12 +275,20 @@ HANDLE WINAPI MyProcessApi::MyCreateThread(
 )
 {
     HANDLE rtn = CreateThread(lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, lpThreadId);
-    if(lpThreadId && Lv > Critial)
+    if (lpThreadId && Lv > Critial)
+    {
         PLOGD << "CreateThread->ThreadId: " << *lpThreadId
             << ", StartAddress:" << reinterpret_cast<ULONG>(lpStartAddress) << endl;
-    else if(Lv>Critial)
-        PLOGD << "CreateThread->"
-        << ", StartAddress:" << reinterpret_cast<ULONG>(lpStartAddress) << endl;
+        Buffer << L"CreateThread->ThreadId: " << *lpThreadId
+            << L", StartAddress:" << reinterpret_cast<ULONG>(lpStartAddress)<<L"\n";
+    }
+        
+    else if (Lv > Critial)
+    {
+        PLOGD << L"CreateThread->StartAddress:" << reinterpret_cast<ULONG>(lpStartAddress) << endl;
+        Buffer << L"CreateThread->StartAddress:" << reinterpret_cast<ULONG>(lpStartAddress) << L"\n";
+    }
+        
     return rtn;
 }
 
@@ -277,16 +301,13 @@ HANDLE WINAPI MyProcessApi::MyOpenProcess(
     HANDLE rtn = OpenProcess(dwDesiredAccess, bInheritHandle, dwProcessId);
     if (rtn != NULL)
     {
-        buffer += L"OpenProcess->" + GetProcessNameByHandle(rtn) + L"\n";
-        if (buffer.size() > 2048)
-        {
-            std::string tmp = std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(buffer);
-            UDPSend(ProcName.c_str(), ProcName.size(), tmp.c_str(), tmp.size());
-            buffer.clear();
-        }
         std::wstring c = GetProcessNameByHandle(rtn);
-        if (dwProcessId != GetCurrentProcessId() && c.size()>0 && Lv>Critial)
+        if (dwProcessId != GetCurrentProcessId() && c.size() > 0 && Lv > Critial)
+        {
             PLOGD << "OpenProcess->TargetApp:" << c << endl;
+            Buffer << L"OpenProcess->TargetApp:" << c << L"\n";
+            //UDPSend(1, wstring(c), Buffer);
+        }    
     }
     return rtn;
 }
@@ -298,8 +319,12 @@ HANDLE WINAPI MyProcessApi::MyOpenThread(
 )
 {
     HANDLE rtn = OpenThread(dwDesiredAccess, bInheritHandle, dwThreadId);
-    if(dwThreadId != GetCurrentThreadId() && Lv > Critial)
+    if (dwThreadId != GetCurrentThreadId() && Lv > Critial)
+    {
         PLOGD << "OpenThread->TargetApp:" << GetProcessNameByHandle(GetCurrentProcess()) << endl;
+        Buffer << L"OpenThread->TargetApp:" << GetProcessNameByHandle(GetCurrentProcess()) << L"\n";
+    }
+    //UDPSend(1, WProcName, Buffer);
     return rtn;
 }
 
@@ -309,20 +334,33 @@ BOOL WINAPI MyProcessApi::MyTerminateProcess(
 )
 {
     BOOL rtn = TerminateProcess(hProcess, uExitCode);
-    if(Lv > None)
+    if (Lv > None)
+    {
         PLOGD << "TerMinateProcess->TargetApp:" << GetProcessNameByHandle(hProcess)
             << ", ExitCode:" << uExitCode
-            << ", Status:" << rtn<<endl;
+            << ", Status:" << rtn << endl;
+        Buffer << L"TerMinateProcess->TargetApp:" << GetProcessNameByHandle(hProcess)
+            << L", ExitCode:" << uExitCode
+            << L", Status:" << rtn <<"\n";
+    }
+        
+    //UDPSend(1, WProcName, Buffer);
     return rtn;
 }
 
 BOOL WINAPI MyProcessApi::MyTerminateThread(HANDLE hThread, DWORD dwExitCode)
 {
     BOOL rtn = TerminateThread(hThread, dwExitCode);
-    if(Lv > Critial)
+    if (Lv > Critial)
+    {
         PLOGD << "TerMinateProcess->TargetApp:" << GetProcessNameByHandle(GetCurrentProcess())
             << ", ExitCode:" << dwExitCode
             << ", Status:" << rtn << endl;
+        Buffer << L"TerMinateProcess->TargetApp:" << GetProcessNameByHandle(GetCurrentProcess())
+            << L", ExitCode:" << dwExitCode
+            << L", Status:" << rtn << endl;
+    }
+    //UDPSend(1, WProcName, Buffer);
     return rtn;
 }
 
@@ -368,8 +406,7 @@ inline void MyProcessApi::InitProcessApi32()
     Check("OpenProcess", LhSetExclusiveACL(ACLEntries, 1, &MyProcessApi::OpenProcessHook));
     Check("TerminateProcess", LhSetExclusiveACL(ACLEntries, 1, &MyProcessApi::TerminateProcessHook));
     Check("TerminateThread", LhSetExclusiveACL(ACLEntries, 1, &MyProcessApi::TerminateThreadHook));
-    MyProcessApi::WProcName = GetProcessNameByHandle(GetCurrentProcess());
-    MyProcessApi::ProcName = std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(GetProcessNameByHandle(GetCurrentProcess()));
+    
 
 }
 
