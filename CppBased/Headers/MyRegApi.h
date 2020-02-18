@@ -19,6 +19,13 @@ typedef DWORD(__stdcall* NtQueryKeyType)(
 class MyRegApi
 {
 public:
+    static std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds> RegTime;
+    static std::wstring_convert<std::codecvt_utf8<wchar_t>> WC;
+    static SOCKET RegSocket;
+    static SOCKADDR_IN RegServer;
+    static Message* RegMessage;
+    static std::wstringstream RegBuffer;
+
     static map<HKEY, wstring> RegMap;
     static Level Lv;
     static HOOK_TRACE_INFO RegCloseKeyHook;
@@ -48,6 +55,7 @@ public:
     static HOOK_TRACE_INFO RegSetValueExWHook;
 
     static inline std::wstring GetName(HKEY hKey);
+    static inline void UdpSend();
     static void SetLv(Level Lv)
     {
         MyRegApi::Lv = Lv;
@@ -229,6 +237,13 @@ public:
 
 
 };
+std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds> MyRegApi::RegTime;
+std::wstring_convert<std::codecvt_utf8<wchar_t>> MyRegApi::WC;
+SOCKET MyRegApi::RegSocket;
+SOCKADDR_IN MyRegApi::RegServer;
+Message* MyRegApi::RegMessage;
+std::wstringstream MyRegApi::RegBuffer;
+
 HOOK_TRACE_INFO MyRegApi::RegCloseKeyHook;
 HOOK_TRACE_INFO MyRegApi::RegCreateKeyAHook;
 HOOK_TRACE_INFO MyRegApi::RegCreateKeyWHook;
@@ -304,8 +319,12 @@ LSTATUS WINAPI MyRegApi::MyRegCloseKey(
     NTSTATUS rtn = RegCloseKey(hKey);
     if ((rtn == ERROR_SUCCESS) && (RegMap.find(hKey) != RegMap.end()))
         RegMap.erase(hKey);
-    if(Lv > Extra)
-        PLOGD << "RegCloseKey->hKey:" << reinterpret_cast<LONG>(hKey)<<endl;
+    if (Lv > Extra)
+    {
+        PLOGD << "RegCloseKey->hKey:" << reinterpret_cast<LONG>(hKey) << endl;
+        RegBuffer << "RegCloseKey->hKey:" << reinterpret_cast<LONG>(hKey) << L"\n";
+        UdpSend();
+    }
     return rtn;
 }
 
@@ -317,10 +336,17 @@ LSTATUS WINAPI MyRegApi::MyRegOpenKeyA(
 {
     wstring tmp = GetName(hKey);
     LSTATUS rtn = RegOpenKeyA(hKey, lpSubKey, phkResult);
-    if(Lv > Extra)
+    if (Lv > Extra)
+    {
         PLOGD << "RegOpenKeyA->Key" << tmp
             << "  ,SubKey:" << sc(lpSubKey)
             << "  ,result:" << *phkResult << endl;
+        RegBuffer << "RegOpenKeyA->Key" << tmp
+            << "  ,SubKey:" << sc(lpSubKey)
+            << "  ,result:" << *phkResult << L"\n";
+        UdpSend();
+    }
+        
     if ( (lpSubKey != NULL) && (rtn == ERROR_SUCCESS) )
         RegMap[*phkResult] = tmp + L"\\" + std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(lpSubKey);
     return rtn;
@@ -335,9 +361,16 @@ LSTATUS WINAPI MyRegApi::MyRegOpenKeyW(
     wstring tmp = GetName(hKey);
     LSTATUS rtn = RegOpenKeyW(hKey, lpSubKey, phkResult);
     if (Lv > Extra)
+    {
         PLOGD << "RegOpenKeyW->Key" << tmp
             << "  ,SubKey:" << sc(lpSubKey)
             << "  ,result:" << *phkResult << endl;
+        RegBuffer<< "RegOpenKeyW->Key" << tmp
+            << "  ,SubKey:" << sc(lpSubKey)
+            << "  ,result:" << *phkResult << L"\n";
+        UdpSend();
+    }
+        
     if ((lpSubKey != NULL) && (rtn == ERROR_SUCCESS))
         RegMap[*phkResult] = tmp + L"\\" + lpSubKey;
     return rtn;
@@ -352,9 +385,16 @@ LSTATUS WINAPI MyRegApi::MyRegCreateKeyA(
     wstring tmp = GetName(hKey);
     LSTATUS rtn = RegCreateKeyA(hKey, lpSubKey, phkResult);
     if (Lv > Extra)
+    {
         PLOGD << "RegCreateKeyA->Key" << tmp
             << "  ,SubKey:" << sc(lpSubKey)
             << "  ,result:" << *phkResult << endl;
+        RegBuffer << "RegCreateKeyA->Key" << tmp
+            << "  ,SubKey:" << sc(lpSubKey)
+            << "  ,result:" << *phkResult << L"\n";
+        UdpSend();
+    }
+        
     if ((lpSubKey != NULL) && (rtn == ERROR_SUCCESS))
         RegMap[*phkResult] = tmp + L"\\" + std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(lpSubKey);
     return rtn;
@@ -369,9 +409,16 @@ LSTATUS WINAPI MyRegApi::MyRegCreateKeyW(
     wstring tmp = GetName(hKey);
     LSTATUS rtn = RegCreateKeyW(hKey, lpSubKey, phkResult);
     if (Lv > Extra)
+    {
         PLOGD << "RegCreateKeyW->Key" << tmp
             << "  ,SubKey:" << sc(lpSubKey)
             << "  ,result:" << *phkResult << endl;
+        RegBuffer << "RegCreateKeyW->Key" << tmp
+            << "  ,SubKey:" << sc(lpSubKey)
+            << "  ,result:" << *phkResult << L"\n";
+        UdpSend();
+    }
+        
     if ((lpSubKey != NULL) && (rtn == ERROR_SUCCESS))
         RegMap[*phkResult] = tmp + L"\\" + lpSubKey;
     return rtn;
@@ -392,9 +439,16 @@ LSTATUS WINAPI MyRegApi::MyRegCreateKeyExA(
     wstring tmp = GetName(hKey);
     LSTATUS rtn = RegCreateKeyExA(hKey, lpSubKey, Reserved, lpClass, dwOptions, samDesired, lpSecurityAttributes, phkResult, lpdwDisposition);
     if (Lv > Extra)
+    {
         PLOGD << "RegCreateKeyExA->Key" << tmp
             << "  ,SubKey:" << sc(lpSubKey)
             << "  ,result:" << *phkResult << endl;
+        RegBuffer << "RegCreateKeyExA->Key" << tmp
+            << "  ,SubKey:" << sc(lpSubKey)
+            << "  ,result:" << *phkResult << L"\n";
+        UdpSend();
+    }
+        
     if ((lpSubKey != NULL) && (rtn == ERROR_SUCCESS))
         RegMap[*phkResult] = tmp + L"\\" + std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(lpSubKey);
     return rtn;
@@ -415,9 +469,16 @@ LSTATUS WINAPI MyRegApi::MyRegCreateKeyExW(
     wstring tmp = GetName(hKey);
     LSTATUS rtn = RegCreateKeyExW(hKey, lpSubKey, Reserved, lpClass, dwOptions, samDesired, lpSecurityAttributes, phkResult, lpdwDisposition);
     if (Lv > Extra)
+    {
         PLOGD << "RegCreateKeyExW->Key" << tmp
             << "  ,SubKey:" << sc(lpSubKey)
             << "  ,result:" << *phkResult << endl;
+        RegBuffer << "RegCreateKeyExW->Key" << tmp
+            << "  ,SubKey:" << sc(lpSubKey)
+            << "  ,result:" << *phkResult << L"\n";
+        UdpSend();
+    }
+        
     if ((lpSubKey != NULL) && (rtn == ERROR_SUCCESS))
         RegMap[*phkResult] = tmp + L"\\" + lpSubKey;
     return rtn;
@@ -434,9 +495,16 @@ LSTATUS WINAPI MyRegApi::MyRegOpenKeyExA(
     wstring tmp = GetName(hKey);
     LSTATUS rtn = RegOpenKeyExA(hKey, lpSubKey, ulOptions, samDesired, phkResult);
     if (Lv > Extra)
+    {
         PLOGD << "RegOpenKeyExA->Key" << tmp
             << "  ,SubKey:" << sc(lpSubKey)
             << "  ,result:" << *phkResult << endl;
+        RegBuffer << "RegOpenKeyExA->Key" << tmp
+            << "  ,SubKey:" << sc(lpSubKey)
+            << "  ,result:" << *phkResult << L"\n";
+        UdpSend();
+    }
+        
     if ((lpSubKey != NULL) && (rtn == ERROR_SUCCESS))
         RegMap[*phkResult] = tmp + L"\\" + std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(lpSubKey);
     return rtn;
@@ -453,9 +521,16 @@ LSTATUS WINAPI MyRegApi::MyRegOpenKeyExW(
     wstring tmp = GetName(hKey);
     LSTATUS rtn = RegOpenKeyExW(hKey, lpSubKey, ulOptions, samDesired, phkResult);
     if (Lv > Extra)
+    {
         PLOGD << "RegOpenKeyExW->Key" << tmp
             << "  ,SubKey:" << sc(lpSubKey)
             << "  ,result:" << *phkResult << endl;
+        RegBuffer << "RegOpenKeyExW->Key" << tmp
+            << "  ,SubKey:" << sc(lpSubKey)
+            << "  ,result:" << *phkResult << L"\n";
+        UdpSend();
+    }
+        
     if ((lpSubKey != NULL) && (rtn == ERROR_SUCCESS))
         RegMap[*phkResult] = tmp + L"\\" + lpSubKey;
     return rtn;
@@ -468,9 +543,15 @@ LSTATUS WINAPI MyRegApi::MyRegDeleteKeyA(
 {
     wstring tmp = GetName(hKey);
     LSTATUS rtn = RegDeleteKeyA(hKey, lpSubKey);
-    if(Lv>None)
+    if (Lv > None)
+    {
         PLOGD << "RegDeleteKeyA->Key" << tmp
             << "  ,SubKey" << sc(lpSubKey) << endl;
+        RegBuffer << "RegDeleteKeyA->Key" << tmp
+            << "  ,SubKey" << sc(lpSubKey) << "\n";
+        UdpSend();
+    }
+        
     return rtn;
 }
 
@@ -483,9 +564,15 @@ LSTATUS WINAPI MyRegApi::MyRegDeleteKeyExA(
 {
     wstring tmp = GetName(hKey);
     LSTATUS rtn = RegDeleteKeyExA(hKey, lpSubKey, samDesired, Reserved);
-    if(Lv > None)
+    if (Lv > None)
+    {
         PLOGD << "RegDeleteKeyExA->Key" << tmp
             << "  ,SubKey" << sc(lpSubKey) << endl;
+        RegBuffer << "RegDeleteKeyExA->Key" << tmp
+            << "  ,SubKey" << sc(lpSubKey) << L"\n";
+        UdpSend();
+    }
+        
     return rtn;
 }
 
@@ -497,8 +584,14 @@ LSTATUS WINAPI MyRegApi::MyRegDeleteKeyW(
     wstring tmp = GetName(hKey);
     LSTATUS rtn = RegDeleteKeyW(hKey, lpSubKey);
     if (Lv > None)
+    {
         PLOGD << "RegDeleteKeyW->Key" << tmp
             << "  ,SubKey" << sc(lpSubKey) << endl;
+        RegBuffer << "RegDeleteKeyW->Key" << tmp
+            << "  ,SubKey" << sc(lpSubKey) << L"\n";
+        UdpSend();
+    }
+        
     return rtn;
 }
 
@@ -512,8 +605,14 @@ LSTATUS WINAPI MyRegApi::MyRegDeleteKeyExW(
     wstring tmp = GetName(hKey);
     LSTATUS rtn = RegDeleteKeyExW(hKey, lpSubKey, samDesired, Reserved);
     if (Lv > None)
+    {
         PLOGD << "RegDeleteKeyExW->Key" << tmp
             << "  ,SubKey" << sc(lpSubKey) << endl;
+        RegBuffer << "RegDeleteKeyExW->Key" << tmp
+            << "  ,SubKey" << sc(lpSubKey) << L"\n";
+        UdpSend();
+    }
+        
     return rtn;
 }
 
@@ -526,9 +625,16 @@ LSTATUS WINAPI MyRegApi::MyRegDeleteKeyValueA(
     wstring tmp = GetName(hKey);
     LSTATUS rtn = RegDeleteKeyValueA(hKey, lpSubKey, lpValueName);
     if (Lv > None)
+    {
         PLOGD << "RegDeleteKeyValueA->Key" << tmp
-            << "  ,SubKey" << sc(lpSubKey) 
-            <<"  ,ValueName"<<sc(lpValueName)<<endl;
+            << "  ,SubKey" << sc(lpSubKey)
+            << "  ,ValueName" << sc(lpValueName) << endl;
+        RegBuffer << "RegDeleteKeyValueA->Key" << tmp
+            << "  ,SubKey" << sc(lpSubKey)
+            << "  ,ValueName" << sc(lpValueName) << L"\n";
+        UdpSend();
+    }
+        
     return rtn;
 }
 
@@ -541,9 +647,16 @@ LSTATUS WINAPI MyRegApi::MyRegDeleteKeyValueW(
     wstring tmp = GetName(hKey);
     LSTATUS rtn = RegDeleteKeyValueW(hKey, lpSubKey, lpValueName);
     if (Lv > None)
+    {
         PLOGD << "RegDeleteKeyValueA->Key" << tmp
             << "  ,SubKey" << sc(lpSubKey)
             << "  ,ValueName" << sc(lpValueName) << endl;
+        RegBuffer << "RegDeleteKeyValueA->Key" << tmp
+            << "  ,SubKey" << sc(lpSubKey)
+            << "  ,ValueName" << sc(lpValueName) << L"\n";
+        UdpSend();
+    }
+        
     return rtn;
 }
 
@@ -555,8 +668,14 @@ LSTATUS WINAPI MyRegApi::MyRegDeleteValueA(
     wstring tmp = GetName(hKey);
     LSTATUS rtn = RegDeleteValueA(hKey, lpValueName);
     if (Lv > None)
+    {
         PLOGD << "RegDeleteKeyValueA->Key" << tmp
             << "  ,ValueName" << sc(lpValueName) << endl;
+        RegBuffer << "RegDeleteKeyValueA->Key" << tmp
+            << "  ,ValueName" << sc(lpValueName) << L"\n";
+        UdpSend();
+    }
+        
     return rtn;
 }
 
@@ -568,8 +687,14 @@ LSTATUS WINAPI MyRegApi::MyRegDeleteValueW(
     wstring tmp = GetName(hKey);
     LSTATUS rtn = RegDeleteValueW(hKey, lpValueName);
     if (Lv > None)
+    {
         PLOGD << "RegDeleteKeyValueA->Key" << tmp
             << "  ,ValueName" << sc(lpValueName) << endl;
+        RegBuffer << "RegDeleteKeyValueA->Key" << tmp
+            << "  ,ValueName" << sc(lpValueName) << L"\n";
+        UdpSend();
+    }
+        
     return rtn;
 }
 
@@ -586,9 +711,16 @@ LSTATUS WINAPI MyRegApi::MyRegGetValueA(
     wstring tmp = GetName(hKey);
     LSTATUS rtn = RegGetValueA(hKey, lpSubKey, lpValue, dwFlags, pdwType, pvData, pcbData);
     if (Lv > Critial)
+    {
         PLOGD << "RegGetVlueA->Key:" << tmp
             << "  ,SbuKey" << sc(lpSubKey)
             << "  ,Value:" << sc(lpValue) << endl;
+        RegBuffer << "RegGetVlueA->Key:" << tmp
+            << "  ,SbuKey" << sc(lpSubKey)
+            << "  ,Value:" << sc(lpValue) << L"\n";
+        UdpSend();
+    }
+        
     return rtn;
 }
 
@@ -605,9 +737,16 @@ LSTATUS WINAPI MyRegApi::MyRegGetValueW(
     wstring tmp = GetName(hKey);
     LSTATUS rtn = RegGetValueW(hKey, lpSubKey, lpValue, dwFlags, pdwType, pvData, pcbData);
     if (Lv > Critial)
+    {
         PLOGD << "RegGetVlueA->Key:" << tmp
             << "  ,SbuKey" << sc(lpSubKey)
             << "  ,Value:" << sc(lpValue) << endl;
+        RegBuffer << "RegGetVlueA->Key:" << tmp
+            << "  ,SbuKey" << sc(lpSubKey)
+            << "  ,Value:" << sc(lpValue) << L"\n";
+        UdpSend();
+    }
+        
     return rtn;
 }
 
@@ -621,8 +760,14 @@ LSTATUS WINAPI MyRegApi::MyRegQueryValueA(
     wstring tmp = GetName(hKey);
     LSTATUS rtn = RegQueryValueA(hKey, lpSubKey, lpData, lpcbData);
     if (Lv > Critial)
+    {
         PLOGD << "RegQueryValueA->Key:" << tmp
             << "  ,SubKey" << sc(lpSubKey) << endl;
+        RegBuffer << "RegQueryValueA->Key:" << tmp
+            << "  ,SubKey" << sc(lpSubKey) << L"\n";
+        UdpSend();
+    }
+        
     return rtn;
 }
 
@@ -636,8 +781,14 @@ LSTATUS WINAPI MyRegApi::MyRegQueryValueW(
     wstring tmp = GetName(hKey);
     LSTATUS rtn = RegQueryValueW(hKey, lpSubKey, lpData, lpcbData);
     if (Lv > Critial)
+    {
         PLOGD << "RegQueryValueW->Key:" << tmp
             << "  ,SubKey" << sc(lpSubKey) << endl;
+        RegBuffer << "RegQueryValueW->Key:" << tmp
+            << "  ,SubKey" << sc(lpSubKey) << L"\n";
+        UdpSend();
+    }
+        
     return rtn;
 }
 
@@ -653,8 +804,14 @@ LSTATUS WINAPI MyRegApi::RegQueryValueExA(
     wstring tmp = GetName(hKey);
     LSTATUS rtn = RegQueryValueExA(hKey, lpValueName, lpReserved, lpType ,lpData, lpcbData);
     if (Lv > Critial)
+    {
         PLOGD << "RegQueryValueExA->Key:" << tmp
             << "  ,Value" << sc(lpValueName) << endl;
+        RegBuffer << "RegQueryValueExA->Key:" << tmp
+            << "  ,Value" << sc(lpValueName) << L"\n";
+        UdpSend();
+    }
+        
     return rtn;
 }
 
@@ -670,8 +827,14 @@ LSTATUS WINAPI MyRegApi::RegQueryValueExW(
     wstring tmp = GetName(hKey);
     LSTATUS rtn = RegQueryValueExW(hKey, lpValueName, lpReserved, lpType, lpData, lpcbData);
     if (Lv > Critial)
+    {
         PLOGD << "RegQueryValueExW->Key:" << tmp
             << "  ,Value" << sc(lpValueName) << endl;
+        RegBuffer << "RegQueryValueExW->Key:" << tmp
+            << "  ,Value" << sc(lpValueName) << L"\n";
+        UdpSend();
+    }
+        
     return rtn;
 }
 
@@ -686,9 +849,16 @@ LSTATUS WINAPI MyRegApi::MyRegSetValueA(
     wstring tmp = GetName(hKey);
     LSTATUS rtn = RegSetValueA(hKey, lpSubKey, dwType, lpData, cbData);
     if (Lv > None)
+    {
         PLOGD << "RegSetValueA->Key:" << tmp
             << "  ,Subkey:" << sc(lpSubKey)
             << "  ,Data:" << sc(lpData) << endl;
+        RegBuffer << "RegSetValueA->Key:" << tmp
+            << "  ,Subkey:" << sc(lpSubKey)
+            << "  ,Data:" << sc(lpData) << L"\n";
+        UdpSend();
+    }
+        
     return rtn;
 }
 
@@ -703,9 +873,16 @@ LSTATUS WINAPI MyRegApi::MyRegSetValueW(
     wstring tmp = GetName(hKey);
     LSTATUS rtn = RegSetValueW(hKey, lpSubKey, dwType, lpData, cbData);
     if (Lv > None)
+    {
         PLOGD << "RegSetValueW->Key:" << tmp
             << "  ,Subkey:" << sc(lpSubKey)
-            <<"  ,Data:"<<sc(lpData)<< endl;
+            << "  ,Data:" << sc(lpData) << endl;
+        RegBuffer << "RegSetValueW->Key:" << tmp
+            << "  ,Subkey:" << sc(lpSubKey)
+            << "  ,Data:" << sc(lpData) << L"\n";
+        UdpSend();
+    }
+        
     return rtn;
 }
 
@@ -721,8 +898,14 @@ LSTATUS WINAPI MyRegApi::MyRegSetValueExA(
     wstring tmp = GetName(hKey);
     LSTATUS rtn = RegSetValueExA(hKey, lpValueName, Reserved, dwType, lpData, cbData);
     if (Lv > None)
+    {
         PLOGD << "RegSetValueA->Key:" << tmp
             << "  ,ValueName:" << sc(lpValueName) << endl;
+        RegBuffer << "RegSetValueA->Key:" << tmp
+            << "  ,ValueName:" << sc(lpValueName) << L"\n";
+        UdpSend();
+    }
+        
     return rtn;
 }
 
@@ -738,10 +921,41 @@ LSTATUS WINAPI MyRegApi::MyRegSetValueExW(
     wstring tmp = GetName(hKey);
     LSTATUS rtn = RegSetValueExW(hKey, lpValueName, Reserved, dwType, lpData, cbData);
     if (Lv > None)
+    {
         PLOGD << "RegSetValueW->Key:" << tmp
             << "  ,ValueName:" << sc(lpValueName) << endl;
+        RegBuffer << "RegSetValueW->Key:" << tmp
+            << "  ,ValueName:" << sc(lpValueName) << L"\n";
+        UdpSend();
+    }
+        
     return rtn;
 }
+
+inline void MyRegApi::UdpSend()
+{
+    const std::wstring& ws = RegBuffer.str();
+    if (ws.size() == 0)
+        return;
+    else if (ws.size() < 30000 && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - RegTime).count() < 500)
+        return;
+    else if (WProcName.size() > 500 || ws.size() > 50000)
+        PLOGE << "Data too long\n";
+    else
+    {
+        memset(RegMessage, 0, sizeof(Message));
+        RegMessage->type = 2;
+        memcpy(RegMessage->Processname, WC.to_bytes(WProcName).c_str(), WProcName.size());
+        memcpy(RegMessage->Data, WC.to_bytes(ws).c_str(), ws.size());
+        if (sendto(RegSocket, (char*)RegMessage, sizeof(Message), 0, (SOCKADDR*)&RegServer, sizeof(SOCKADDR)) == SOCKET_ERROR)
+            PLOGE << RtlGetLastErrorString() << std::endl;
+        else
+            RegBuffer.str(L"");
+        RegTime = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
+    }
+    return;
+}
+
 
 void MyRegApi::InitRegApi()
 {
@@ -771,6 +985,8 @@ void MyRegApi::InitRegApi()
     Check("RegSetValueExW", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("advapi32")), "RegSetValueExW"), MyRegApi::MyRegSetValueExW, NULL, &MyRegApi::RegSetValueExWHook));
     Check("RegSetValueExA", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("advapi32")), "RegSetValueExA"), MyRegApi::MyRegSetValueExA, NULL, &MyRegApi::RegSetValueExAHook));
 
+
+
     ULONG ACLEntries[1] = { 0 };
 
     Check("RegCloseKey", LhSetExclusiveACL(ACLEntries, 1, &MyRegApi::RegCloseKeyHook));
@@ -798,4 +1014,12 @@ void MyRegApi::InitRegApi()
     Check("RegSetValueW", LhSetExclusiveACL(ACLEntries, 1, &MyRegApi::RegSetValueWHook));
     Check("RegSetValueExW", LhSetExclusiveACL(ACLEntries, 1, &MyRegApi::RegSetValueExWHook));
     Check("RegSetValueExA", LhSetExclusiveACL(ACLEntries, 1, &MyRegApi::RegSetValueExAHook));
+
+    if (SOCKET_ERROR == (RegSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)))
+        PLOGE << "Init socket error" << endl;
+    RegServer.sin_family = AF_INET;
+    RegServer.sin_addr.s_addr = inet_addr("127.0.0.1");
+    RegServer.sin_port = htons((short)9999);
+    RegMessage = new Message;
+    RegTime = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
 }

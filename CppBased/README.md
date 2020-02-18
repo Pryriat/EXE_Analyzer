@@ -12,14 +12,14 @@
 - [ ] 文件沙箱
 - [ ] 恶意行为拦截
 - [ ] 杂项API调用跟踪
-- [ ] 基于PyQt5的GUI
+- [x] 基于Qt5的GUI
 
 # 文件嗅探
 ![](https://github.com/Pryriat/EXE_Analyzer/blob/master/Image/Copy_On_Write.png)
 
 # 示例输出
+![](https://github.com/Pryriat/EXE_Analyzer/blob/master/Image/ui.png)
+
 ![](https://github.com/Pryriat/EXE_Analyzer/blob/master/Image/ScreenShot.png)
-
-
 
 

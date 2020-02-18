@@ -10,6 +10,7 @@
 #include<wininet.h>
 #include<fileapi.h>
 #include<synchapi.h>
+#include<chrono>
 #include<plog/Log.h>
 #include<plog/Record.h>
 #include<WinSock2.h>

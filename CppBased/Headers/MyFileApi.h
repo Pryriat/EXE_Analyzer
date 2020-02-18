@@ -12,11 +12,11 @@ public:
 	static CRITICAL_SECTION CriticalLock;
 	static wstringstream Buffer;
 	static std::wstring_convert<std::codecvt_utf8<wchar_t>> WC;
+	static std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds> FileTime;
 	static Level Lv;
 	static SOCKET FileSocket;
 	static SOCKADDR_IN FileServer;
 	static Message* FileMessage;
-	static wstring WProcName;
 	static std::wstring FilePrefix;
 	static vector<wstring> FileFilter;
 	static std::map<HANDLE, std::wstring> FileMap;
@@ -119,8 +119,8 @@ public:
 	static inline void UdpSend();
 };
 CRITICAL_SECTION MyFileApi::CriticalLock;
+std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds> MyFileApi::FileTime;
 wstringstream MyFileApi::Buffer;
-wstring MyFileApi::WProcName;
 SOCKET MyFileApi::FileSocket;
 PMS MyFileApi::FileMessage;
 SOCKADDR_IN MyFileApi::FileServer;
@@ -608,7 +608,9 @@ BOOL WINAPI MyFileApi::MyMoveFileExW(
 inline void MyFileApi::UdpSend()
 {
 	const std::wstring& ws = Buffer.str();
-	if (ws.size() < 40000)
+	if (ws.size() == 0)
+		return;
+	else if (ws.size() < 38400 && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - FileTime).count() < 500)
 		return;
 	else if (WProcName.size() > 500 || ws.size() > 50000)
 		PLOGE << "Data too long\n";
@@ -622,9 +624,11 @@ inline void MyFileApi::UdpSend()
 			PLOGE << RtlGetLastErrorString() << std::endl;
 		else
 			Buffer.str(L"");
+		FileTime = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
 	}
 	return;
 }
+
 
 inline void MyFileApi::InitFileApi64()
 {

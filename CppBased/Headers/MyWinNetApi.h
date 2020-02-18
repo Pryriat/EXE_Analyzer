@@ -7,9 +7,14 @@ using std::endl;
 class MyWinNetApi
 {
 public:
-    static BOOL WinNetApiEnable;
 
+    static std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds> WinNetTime;
     static Level Lv;
+    static std::wstring_convert<std::codecvt_utf8<wchar_t>> WC;
+    static SOCKET WinNetSocket;
+    static SOCKADDR_IN WinNetServer;
+    static Message* WinNetMessage;
+    static std::wstringstream WinNetBuffer;
 
     static map<HANDLE, wstring> InternetOpenHandleMap;
     static map<HANDLE, wstring> InternetFileHandleMap;
@@ -38,6 +43,7 @@ public:
         MyWinNetApi::Lv = Lv;
     }
     static void InitWinNetApi();
+    static inline void UdpSend();
     static HINTERNET WINAPI MyInternetOpenA(
         LPCSTR lpszAgent,
         DWORD  dwAccessType,
@@ -161,7 +167,12 @@ public:
        DWORD_PTR           dwContext
    );
 };
-BOOL MyWinNetApi::WinNetApiEnable = TRUE;
+std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds> MyWinNetApi::WinNetTime;
+std::wstring_convert<std::codecvt_utf8<wchar_t>> MyWinNetApi::WC;
+SOCKET MyWinNetApi::WinNetSocket;
+SOCKADDR_IN MyWinNetApi::WinNetServer;
+Message* MyWinNetApi::WinNetMessage;
+std::wstringstream MyWinNetApi::WinNetBuffer;
 Level MyWinNetApi::Lv = Debug;
 map<HANDLE, wstring> MyWinNetApi::InternetOpenHandleMap;
 map<HANDLE, wstring> MyWinNetApi::InternetFileHandleMap;
@@ -200,17 +211,33 @@ HINTERNET WINAPI MyWinNetApi::MyInternetOpenA(
     if (rtn != NULL)
     {
         InternetOpenHandleMap[rtn] = std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(sc(lpszAgent));
-        if(Lv > Extra)
+        if (Lv > Extra)
+        {
             PLOGD << "InternetOpenA->Agent:" << sc(lpszAgent)
                 << "  ,Proxy:" << sc(lpszProxy)
                 << "  ,ProxyByPass" << sc(lpszProxyBypass)
                 << "  ,Status:Success" << endl;
+            WinNetBuffer << "InternetOpenA->Agent:" << sc(lpszAgent)
+                << "  ,Proxy:" << sc(lpszProxy)
+                << "  ,ProxyByPass" << sc(lpszProxyBypass)
+                << "  ,Status:Success" << L"\n";
+            UdpSend();
+        }
+            
     }
     else if (Lv > Extra)
+    {
         PLOGD << "InternetOpenA->Agent:" << sc(lpszAgent)
-        << "  ,Proxy:" << sc(lpszProxy)
-        << "  ,ProxyByPass:" << sc(lpszProxyBypass)
-        << "  ,Status:Failed:" << endl;
+            << "  ,Proxy:" << sc(lpszProxy)
+            << "  ,ProxyByPass:" << sc(lpszProxyBypass)
+            << "  ,Status:Failed:" << endl;
+        WinNetBuffer << "InternetOpenA->Agent:" << sc(lpszAgent)
+            << "  ,Proxy:" << sc(lpszProxy)
+            << "  ,ProxyByPass:" << sc(lpszProxyBypass)
+            << "  ,Status:Failed:" << L"\n";
+        UdpSend();
+    }
+        
     return rtn;
 }
 
@@ -227,16 +254,32 @@ HINTERNET WINAPI MyWinNetApi::MyInternetOpenW(
     {
         InternetOpenHandleMap[rtn] = sc(lpszAgent);
         if (Lv > Extra)
+        {
             PLOGD << "InternetOpenA->Agent:" << sc(lpszAgent)
                 << "  ,Proxy:" << sc(lpszProxy)
                 << "  ,ProxyByPass" << sc(lpszProxyBypass)
                 << "  ,Status:Success" << endl;
+            WinNetBuffer << "InternetOpenA->Agent:" << sc(lpszAgent)
+                << "  ,Proxy:" << sc(lpszProxy)
+                << "  ,ProxyByPass" << sc(lpszProxyBypass)
+                << "  ,Status:Success" << L"\n";
+            UdpSend();
+        }
+            
     }
     else if (Lv > Extra)
+    {
         PLOGD << "InternetOpenA->Agent:" << sc(lpszAgent)
-        << "  ,Proxy:" << sc(lpszProxy)
-        << "  ,ProxyByPass:" << sc(lpszProxyBypass)
-        << "  ,Status:Failed:" << endl;
+            << "  ,Proxy:" << sc(lpszProxy)
+            << "  ,ProxyByPass:" << sc(lpszProxyBypass)
+            << "  ,Status:Failed:" << endl;
+        WinNetBuffer << "InternetOpenA->Agent:" << sc(lpszAgent)
+            << "  ,Proxy:" << sc(lpszProxy)
+            << "  ,ProxyByPass:" << sc(lpszProxyBypass)
+            << "  ,Status:Failed:" << L"\n";
+        UdpSend();
+    }
+        
     return rtn;
 }
 
@@ -253,17 +296,32 @@ HINTERNET WINAPI MyWinNetApi::MyInternetOpenUrlA(
     if (rtn != NULL)
     {
         InternetFileHandleMap[rtn] = std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(sc(lpszUrl));
-        if(Lv > None)
+        if (Lv > None)
+        {
             PLOGD << "InternetOpenUrlA->Agent:" << InternetOpenHandleMap[hInternet]
                 << "  ,Url:" << sc(lpszUrl)
                 << "  ,Headers" << sc(lpszHeaders)
                 << "  ,Status:Success" << endl;
+            WinNetBuffer << "InternetOpenUrlA->Agent:" << InternetOpenHandleMap[hInternet]
+                << "  ,Url:" << sc(lpszUrl)
+                << "  ,Headers" << sc(lpszHeaders)
+                << "  ,Status:Success" << L"\n";
+            UdpSend();
+        }
     }
     else if (Lv > None)
+    {
         PLOGD << "InternetOpenUrlA->Agent:" << InternetOpenHandleMap[hInternet]
-        << "  ,Url:" << sc(lpszUrl)
-        << "  ,Headers" << sc(lpszHeaders)
-        << "  ,Status:Failed" << endl;
+            << "  ,Url:" << sc(lpszUrl)
+            << "  ,Headers" << sc(lpszHeaders)
+            << "  ,Status:Failed" << endl;
+        WinNetBuffer << "InternetOpenUrlA->Agent:" << InternetOpenHandleMap[hInternet]
+            << "  ,Url:" << sc(lpszUrl)
+            << "  ,Headers" << sc(lpszHeaders)
+            << "  ,Status:Failed" << "\n";
+        UdpSend();
+    }
+        
     return rtn;
 }
 
@@ -281,16 +339,32 @@ HINTERNET WINAPI MyWinNetApi::MyInternetOpenUrlW(
     {
         InternetFileHandleMap[rtn] = sc(lpszUrl);
         if (Lv > None)
+        {
             PLOGD << "InternetOpenUrlA->Agent:" << InternetOpenHandleMap[hInternet]
                 << "  ,Url:" << sc(lpszUrl)
                 << "  ,Headers" << sc(lpszHeaders)
                 << "  ,Status:Success" << endl;
+            WinNetBuffer << "InternetOpenUrlA->Agent:" << InternetOpenHandleMap[hInternet]
+                << "  ,Url:" << sc(lpszUrl)
+                << "  ,Headers" << sc(lpszHeaders)
+                << "  ,Status:Success" << L"\n";
+            UdpSend();
+        }
+            
     }
     else if (Lv > None)
+    {
         PLOGD << "InternetOpenUrlA->Agent:" << InternetOpenHandleMap[hInternet]
-        << "  ,Url:" << sc(lpszUrl)
-        << "  ,Headers" << sc(lpszHeaders)
-        << "  ,Status:Failed" << endl;
+            << "  ,Url:" << sc(lpszUrl)
+            << "  ,Headers" << sc(lpszHeaders)
+            << "  ,Status:Failed" << endl;
+        WinNetBuffer << "InternetOpenUrlA->Agent:" << InternetOpenHandleMap[hInternet]
+            << "  ,Url:" << sc(lpszUrl)
+            << "  ,Headers" << sc(lpszHeaders)
+            << "  ,Status:Success" << L"\n";
+        UdpSend();
+    }
+        
     return rtn;
 }
 
@@ -312,31 +386,58 @@ HINTERNET WINAPI  MyWinNetApi::MyInternetConnectA(
         {
         case INTERNET_SERVICE_FTP:
             FtpSessionMap[rtn] = std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(lpszServerName);
-            if(Lv > Critial)
+            if (Lv > Critial)
+            {
                 PLOGD << "InternetConnectA->Agent:" << InternetOpenHandleMap[hInternet]
                     << "  ,Server:" << sc(lpszServerName)
                     << "  ,ServerPort:" << nServerPort
                     << "  ,UserName:" << sc(lpszUserName)
                     << "  ,Password:" << sc(lpszPassword)
                     << " ServiceType:FTP  ,Status:Success" << endl;
+                WinNetBuffer << "InternetConnectA->Agent:" << InternetOpenHandleMap[hInternet]
+                    << "  ,Server:" << sc(lpszServerName)
+                    << "  ,ServerPort:" << nServerPort
+                    << "  ,UserName:" << sc(lpszUserName)
+                    << "  ,Password:" << sc(lpszPassword)
+                    << " ServiceType:FTP  ,Status:Success" << L"\n";
+                UdpSend();
+            }
             break;
         case INTERNET_SERVICE_HTTP:
             HttpSessionMap[rtn] = std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(lpszServerName);
             if (Lv > Critial)
+            {
                 PLOGD << "InternetOpenA->Agent:" << InternetOpenHandleMap[hInternet]
                     << "  ,Server:" << sc(lpszServerName)
                     << "  ,ServerPort:" << nServerPort
                     << "  ,UserName:" << sc(lpszUserName)
                     << "  ,Password:" << sc(lpszPassword)
                     << " ServiceType:HTTP  ,Status:Success" << endl;
+                WinNetBuffer << "InternetOpenA->Agent:" << InternetOpenHandleMap[hInternet]
+                    << "  ,Server:" << sc(lpszServerName)
+                    << "  ,ServerPort:" << nServerPort
+                    << "  ,UserName:" << sc(lpszUserName)
+                    << "  ,Password:" << sc(lpszPassword)
+                    << " ServiceType:HTTP  ,Status:Success" << L"\n";
+                UdpSend();
+            }
         default:
             if (Lv > Critial)
+            {
                 PLOGD << "InternetOpenA->Agent:" << InternetOpenHandleMap[hInternet]
                     << "  ,Server:" << sc(lpszServerName)
                     << "  ,ServerPort:" << nServerPort
                     << "  ,UserName:" << sc(lpszUserName)
                     << "  ,Password:" << sc(lpszPassword)
                     << " ServiceType:Unknows  ,Status:Success" << endl;
+                WinNetBuffer << "InternetOpenA->Agent:" << InternetOpenHandleMap[hInternet]
+                    << "  ,Server:" << sc(lpszServerName)
+                    << "  ,ServerPort:" << nServerPort
+                    << "  ,UserName:" << sc(lpszUserName)
+                    << "  ,Password:" << sc(lpszPassword)
+                    << " ServiceType:Unknows  ,Status:Success" << L"\n";
+                UdpSend();
+            }
         }
     }
     else
@@ -345,29 +446,59 @@ HINTERNET WINAPI  MyWinNetApi::MyInternetConnectA(
         {
         case INTERNET_SERVICE_FTP:
             if (Lv > Critial)
+            {
                 PLOGD << "InternetOpenA->Agent:" << InternetOpenHandleMap[hInternet]
                     << "  ,Server:" << sc(lpszServerName)
                     << "  ,ServerPort:" << nServerPort
                     << "  ,UserName:" << sc(lpszUserName)
                     << "  ,Password:" << sc(lpszPassword)
                     << " ServiceType:FTP  ,Status:Failed" << endl;
+                WinNetBuffer << "InternetOpenA->Agent:" << InternetOpenHandleMap[hInternet]
+                    << "  ,Server:" << sc(lpszServerName)
+                    << "  ,ServerPort:" << nServerPort
+                    << "  ,UserName:" << sc(lpszUserName)
+                    << "  ,Password:" << sc(lpszPassword)
+                    << " ServiceType:FTP  ,Status:Failed" << L"\n";
+                UdpSend();
+            }
+                
             break;
         case INTERNET_SERVICE_HTTP:
             if (Lv > Critial)
+            {
                 PLOGD << "InternetOpenA->Agent:" << InternetOpenHandleMap[hInternet]
                     << "  ,Server:" << sc(lpszServerName)
                     << "  ,ServerPort:" << nServerPort
                     << "  ,UserName:" << sc(lpszUserName)
                     << "  ,Password:" << sc(lpszPassword)
                     << " ServiceType:HTTP  ,Status:Failed" << endl;
+                WinNetBuffer << "InternetOpenA->Agent:" << InternetOpenHandleMap[hInternet]
+                    << "  ,Server:" << sc(lpszServerName)
+                    << "  ,ServerPort:" << nServerPort
+                    << "  ,UserName:" << sc(lpszUserName)
+                    << "  ,Password:" << sc(lpszPassword)
+                    << " ServiceType:HTTP  ,Status:Failed" << L"\n";
+                UdpSend();
+            }
+                
         default:
             if (Lv > Critial)
+            {
                 PLOGD << "InternetOpenA->Agent:" << InternetOpenHandleMap[hInternet]
                     << "  ,Server:" << sc(lpszServerName)
                     << "  ,ServerPort:" << nServerPort
                     << "  ,UserName:" << sc(lpszUserName)
                     << "  ,Password:" << sc(lpszPassword)
                     << " ServiceType:Unknows  ,Status:Failed" << endl;
+                WinNetBuffer << "InternetOpenA->Agent:" << InternetOpenHandleMap[hInternet]
+                    << "  ,Server:" << sc(lpszServerName)
+                    << "  ,ServerPort:" << nServerPort
+                    << "  ,UserName:" << sc(lpszUserName)
+                    << "  ,Password:" << sc(lpszPassword)
+                    << " ServiceType:Unknows  ,Status:Failed" << L"\n";
+                UdpSend();
+            }
+                
         }
     }
     return rtn;
@@ -392,30 +523,60 @@ HINTERNET WINAPI  MyWinNetApi::MyInternetConnectW(
         case INTERNET_SERVICE_FTP:
             FtpSessionMap[rtn] = lpszServerName;
             if (Lv > Critial)
+            {
                 PLOGD << "InternetOpenW->Agent:" << InternetOpenHandleMap[hInternet]
                     << "  ,Server:" << sc(lpszServerName)
                     << "  ,ServerPort:" << nServerPort
                     << "  ,UserName:" << sc(lpszUserName)
                     << "  ,Password:" << sc(lpszPassword)
                     << " ServiceType:FTP  ,Status:Success" << endl;
+                WinNetBuffer << "InternetOpenW->Agent:" << InternetOpenHandleMap[hInternet]
+                    << "  ,Server:" << sc(lpszServerName)
+                    << "  ,ServerPort:" << nServerPort
+                    << "  ,UserName:" << sc(lpszUserName)
+                    << "  ,Password:" << sc(lpszPassword)
+                    << " ServiceType:FTP  ,Status:Success" << L"\n";
+                UdpSend();
+            }
+                
             break;
         case INTERNET_SERVICE_HTTP:
             HttpSessionMap[rtn] = lpszServerName;
             if (Lv > Critial)
+            {
                 PLOGD << "InternetOpenW->Agent:" << InternetOpenHandleMap[hInternet]
                     << "  ,Server:" << sc(lpszServerName)
                     << "  ,ServerPort:" << nServerPort
                     << "  ,UserName:" << sc(lpszUserName)
                     << "  ,Password:" << sc(lpszPassword)
                     << " ServiceType:HTTP  ,Status:Success" << endl;
+                WinNetBuffer << "InternetOpenW->Agent:" << InternetOpenHandleMap[hInternet]
+                    << "  ,Server:" << sc(lpszServerName)
+                    << "  ,ServerPort:" << nServerPort
+                    << "  ,UserName:" << sc(lpszUserName)
+                    << "  ,Password:" << sc(lpszPassword)
+                    << " ServiceType:HTTP  ,Status:Success" << L"\n";
+                UdpSend();
+            }
+                
         default:
             if (Lv > Critial)
+            {
                 PLOGD << "InternetOpenW->Agent:" << InternetOpenHandleMap[hInternet]
                     << "  ,Server:" << sc(lpszServerName)
                     << "  ,ServerPort:" << nServerPort
                     << "  ,UserName:" << sc(lpszUserName)
                     << "  ,Password:" << sc(lpszPassword)
-                    << " ServiceType:Unknows  ,Status:Success" << endl;
+                    << " ServiceType:Unknown  ,Status:Success" << endl;
+                WinNetBuffer << "InternetOpenW->Agent:" << InternetOpenHandleMap[hInternet]
+                    << "  ,Server:" << sc(lpszServerName)
+                    << "  ,ServerPort:" << nServerPort
+                    << "  ,UserName:" << sc(lpszUserName)
+                    << "  ,Password:" << sc(lpszPassword)
+                    << " ServiceType:Unknown  ,Status:Success" << L"\n";
+                UdpSend();
+            }
+                
         }
     }
     else
@@ -424,29 +585,59 @@ HINTERNET WINAPI  MyWinNetApi::MyInternetConnectW(
         {
         case INTERNET_SERVICE_FTP:
             if (Lv > Critial)
+            {
                 PLOGD << "InternetOpenA->Agent:" << InternetOpenHandleMap[hInternet]
                     << "  ,Server:" << sc(lpszServerName)
                     << "  ,ServerPort:" << nServerPort
                     << "  ,UserName:" << sc(lpszUserName)
                     << "  ,Password:" << sc(lpszPassword)
                     << " ServiceType:FTP  ,Status:Failed" << endl;
+                WinNetBuffer << "InternetOpenA->Agent:" << InternetOpenHandleMap[hInternet]
+                    << "  ,Server:" << sc(lpszServerName)
+                    << "  ,ServerPort:" << nServerPort
+                    << "  ,UserName:" << sc(lpszUserName)
+                    << "  ,Password:" << sc(lpszPassword)
+                    << " ServiceType:FTP  ,Status:Failed" << endl;
+                UdpSend();
+            }
+                
             break;
         case INTERNET_SERVICE_HTTP:
             if (Lv > Critial)
+            {
                 PLOGD << "InternetOpenA->Agent:" << InternetOpenHandleMap[hInternet]
                     << "  ,Server:" << sc(lpszServerName)
                     << "  ,ServerPort:" << nServerPort
                     << "  ,UserName:" << sc(lpszUserName)
                     << "  ,Password:" << sc(lpszPassword)
                     << " ServiceType:HTTP  ,Status:Failed" << endl;
+                WinNetBuffer << "InternetOpenA->Agent:" << InternetOpenHandleMap[hInternet]
+                    << "  ,Server:" << sc(lpszServerName)
+                    << "  ,ServerPort:" << nServerPort
+                    << "  ,UserName:" << sc(lpszUserName)
+                    << "  ,Password:" << sc(lpszPassword)
+                    << " ServiceType:HTTP  ,Status:Failed" << endl;
+                UdpSend();
+            }
+                
         default:
             if (Lv > Critial)
+            {
                 PLOGD << "InternetOpenA->Agent:" << InternetOpenHandleMap[hInternet]
                     << "  ,Server:" << sc(lpszServerName)
                     << "  ,ServerPort:" << nServerPort
                     << "  ,UserName:" << sc(lpszUserName)
                     << "  ,Password:" << sc(lpszPassword)
                     << " ServiceType:Unknows  ,Status:Failed" << endl;
+                WinNetBuffer << "InternetOpenA->Agent:" << InternetOpenHandleMap[hInternet]
+                    << "  ,Server:" << sc(lpszServerName)
+                    << "  ,ServerPort:" << nServerPort
+                    << "  ,UserName:" << sc(lpszUserName)
+                    << "  ,Password:" << sc(lpszPassword)
+                    << " ServiceType:Unknows  ,Status:Failed" << endl;
+                UdpSend();
+            }
+                
         }
     }
     return rtn;
@@ -461,9 +652,15 @@ BOOL WINAPI MyWinNetApi::MyInternetReadFile(
 {
     BOOL rtn = InternetReadFile(hFile, lpBuffer, dwNumberOfBytesToRead, lpdwNumberOfBytesRead);
     if (Lv > Critial)
+    {
         PLOGD << "InternetReadFile->FileName:" << InternetFileHandleMap[hFile]
-            << "  ,NumberOfBytesRead:" << *lpdwNumberOfBytesRead 
-            <<"  ,Status:"<<rtn<< endl;
+            << "  ,NumberOfBytesRead:" << *lpdwNumberOfBytesRead
+            << "  ,Status:" << rtn << endl;
+        WinNetBuffer << "InternetReadFile->FileName:" << InternetFileHandleMap[hFile]
+            << "  ,NumberOfBytesRead:" << *lpdwNumberOfBytesRead
+            << "  ,Status:" << rtn << endl;
+        UdpSend();
+    }
     return rtn;
 }
 
@@ -476,8 +673,14 @@ BOOL WINAPI MyWinNetApi::MyInternetReadFileExA(
 {
     BOOL rtn = InternetReadFileExA(hFile, lpBuffersOut, dwFlags, dwContext);
     if (Lv > Critial)
+    {
         PLOGD << "InternetReadFileExA->FileName:" << InternetFileHandleMap[hFile]
             << "  ,Status:" << rtn << endl;
+        WinNetBuffer << "InternetReadFileExA->FileName:" << InternetFileHandleMap[hFile]
+            << "  ,Status:" << rtn << endl;
+        UdpSend();
+    }
+        
     return rtn;
 }
 
@@ -490,8 +693,14 @@ BOOL WINAPI MyWinNetApi::MyInternetReadFileExW(
 {
     BOOL rtn = InternetReadFileExW(hFile, lpBuffersOut, dwFlags, dwContext);
     if (Lv > Critial)
+    {
         PLOGD << "InternetReadFileExW->FileName:" << InternetFileHandleMap[hFile]
             << "  ,Status:" << rtn << endl;
+        WinNetBuffer << "InternetReadFileExW->FileName:" << InternetFileHandleMap[hFile]
+            << "  ,Status:" << rtn << endl;
+        UdpSend();
+    }
+
     return rtn;
 }
 
@@ -504,9 +713,16 @@ BOOL WINAPI MyWinNetApi::MyInternetWriteFile(
 {
     BOOL rtn = InternetWriteFile(hFile, lpBuffer, dwNumberOfBytesToWrite, lpdwNumberOfBytesWritten);
     if (Lv > None)
+    {
         PLOGD << "InternetWriteFile->FileName:" << InternetFileHandleMap[hFile]
             << "  ,NumberOfBytesWritten:" << *lpdwNumberOfBytesWritten
             << "  ,Status:" << rtn << endl;
+        WinNetBuffer << "InternetWriteFile->FileName:" << InternetFileHandleMap[hFile]
+            << "  ,NumberOfBytesWritten:" << *lpdwNumberOfBytesWritten
+            << "  ,Status:" << rtn << endl;
+        UdpSend();
+    }
+        
     return rtn;
 }
 
@@ -526,10 +742,18 @@ HINTERNET WINAPI MyWinNetApi::MyHttpOpenRequestA(
     {
         InternetFileHandleMap[rtn] = HttpSessionMap[hConnect] + std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(sc(lpszObjectName));
         if (Lv > Critial)
+        {
             PLOGD << "HttpOpenRequestA->Server:" << HttpSessionMap[hConnect]
                 << "  ,Method:" << ((lpszVerb == NULL) ? "Get" : sc(lpszVerb))
                 << "  ,Target:" << sc(lpszObjectName)
                 << "  ,Referrer:" << sc(lpszReferrer) << endl;
+            WinNetBuffer << "HttpOpenRequestA->Server:" << HttpSessionMap[hConnect]
+                << "  ,Method:" << ((lpszVerb == NULL) ? "Get" : sc(lpszVerb))
+                << "  ,Target:" << sc(lpszObjectName)
+                << "  ,Referrer:" << sc(lpszReferrer) << endl;
+            UdpSend();
+        }
+            
     }
     return rtn;
 }
@@ -549,11 +773,19 @@ HINTERNET WINAPI MyWinNetApi::MyHttpOpenRequestW(
     if (rtn)
     {
         InternetFileHandleMap[rtn] = HttpSessionMap[hConnect] + sc(lpszObjectName);
-        if(Lv>Critial)
+        if (Lv > Critial)
+        {
             PLOGD << "HttpOpenRequestW->Server:" << HttpSessionMap[hConnect]
                 << "  ,Method:" << (lpszVerb == NULL ? L"Get" : sc(lpszVerb))
                 << "  ,Target:" << sc(lpszObjectName)
                 << "  ,Referrer:" << sc(lpszReferrer) << endl;
+            WinNetBuffer << "HttpOpenRequestW->Server:" << HttpSessionMap[hConnect]
+                << "  ,Method:" << (lpszVerb == NULL ? L"Get" : sc(lpszVerb))
+                << "  ,Target:" << sc(lpszObjectName)
+                << "  ,Referrer:" << sc(lpszReferrer) << endl;
+            UdpSend();
+        }
+            
     }
     return rtn;
 }
@@ -567,10 +799,17 @@ BOOL WINAPI MyWinNetApi::MyHttpSendRequestA(
 )
 {
     BOOL rtn = HttpSendRequestA(hRequest, lpszHeaders, dwHeadersLength, lpOptional, dwOptionalLength);
-    if(Lv > None)
+    if (Lv > None)
+    {
         PLOGD << "HttpSendRequest->RequestTarget:" << InternetFileHandleMap[hRequest]
             << "  ,Headers:" << sc(lpszHeaders)
             << "  Status:" << rtn << endl;
+        WinNetBuffer << "HttpSendRequest->RequestTarget:" << InternetFileHandleMap[hRequest]
+            << "  ,Headers:" << sc(lpszHeaders)
+            << "  Status:" << rtn << endl;
+        UdpSend();
+    }
+        
     return rtn;
 }
 
@@ -583,10 +822,17 @@ BOOL WINAPI MyWinNetApi::MyHttpSendRequestW(
 )
 {
     BOOL rtn = HttpSendRequestW(hRequest, lpszHeaders, dwHeadersLength, lpOptional, dwOptionalLength);
-    if(Lv> None)
+    if (Lv > None)
+    {
         PLOGD << "HttpSendRequest->RequestTarget:" << InternetFileHandleMap[hRequest]
             << "  ,Headers:" << sc(lpszHeaders)
             << "  Status:" << rtn << endl;
+        WinNetBuffer << "HttpSendRequest->RequestTarget:" << InternetFileHandleMap[hRequest]
+            << "  ,Headers:" << sc(lpszHeaders)
+            << "  Status:" << rtn << endl;
+        UdpSend();
+    }
+        
     return rtn;
 }
 
@@ -600,8 +846,14 @@ BOOL WINAPI MyWinNetApi::MyHttpSendRequestExA(
 {
     BOOL rtn = HttpSendRequestExA(hRequest, lpBuffersIn, lpBuffersOut, dwFlags, dwContext);
     if (Lv > None)
+    {
         PLOGD << "HttpSendRequest->RequestTarget:" << InternetFileHandleMap[hRequest]
             << "  Status:" << rtn << endl;
+        WinNetBuffer << "HttpSendRequest->RequestTarget:" << InternetFileHandleMap[hRequest]
+            << "  Status:" << rtn << endl;
+        UdpSend();
+    }
+        
     return rtn;
 }
 
@@ -615,12 +867,40 @@ BOOL WINAPI MyWinNetApi::MyHttpSendRequestExW(
 {
     BOOL rtn = HttpSendRequestExW(hRequest, lpBuffersIn, lpBuffersOut, dwFlags, dwContext);
     if (Lv > None)
+    {
         PLOGD << "HttpSendRequest->RequestTarget:" << InternetFileHandleMap[hRequest]
             << "  Status:" << rtn << endl;
+        WinNetBuffer << "HttpSendRequest->RequestTarget:" << InternetFileHandleMap[hRequest]
+            << "  Status:" << rtn << endl;
+        UdpSend();
+    }
+        
     return rtn;
 }
 
-
+void MyWinNetApi::UdpSend()
+{
+    const std::wstring& ws = WinNetBuffer.str();
+    if (ws.size() == 0)
+        return;
+    else if (ws.size() < 30000 && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - WinNetTime).count() < 500)
+        return;
+    else if (WProcName.size() > 500 || ws.size() > 50000)
+        PLOGE << "Data too long\n";
+    else
+    {
+        memset(WinNetMessage, 0, sizeof(Message));
+        WinNetMessage->type = 3;
+        memcpy(WinNetMessage->Processname, WC.to_bytes(WProcName).c_str(), WProcName.size());
+        memcpy(WinNetMessage->Data, WC.to_bytes(ws).c_str(), ws.size());
+        if (sendto(WinNetSocket, (char*)WinNetMessage, sizeof(Message), 0, (SOCKADDR*)&WinNetServer, sizeof(SOCKADDR)) == SOCKET_ERROR)
+            PLOGE << RtlGetLastErrorString() << std::endl;
+        else
+            WinNetBuffer.str(L"");
+        WinNetTime = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
+    }
+    return;
+}
 void MyWinNetApi::InitWinNetApi()
 {
     Check("InternetOpenA", LhInstallHook(GetProcAddress(GetModuleHandle(TEXT("wininet")), "InternetOpenA"), MyWinNetApi::MyInternetOpenA, NULL, &MyWinNetApi::InternetOpenAHook));
@@ -657,5 +937,13 @@ void MyWinNetApi::InitWinNetApi()
     Check("HttpSendRequestW", LhSetExclusiveACL(ACLEntries, 1, &MyWinNetApi::HttpSendRequestWHook));
     Check("HttpSendRequestExA", LhSetExclusiveACL(ACLEntries, 1, &MyWinNetApi::HttpSendRequestExAHook));
     Check("HttpSendRequestExW", LhSetExclusiveACL(ACLEntries, 1, &MyWinNetApi::HttpSendRequestExWHook));
+
+    if (SOCKET_ERROR == (WinNetSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)))
+        PLOGE << "Init socket error" << endl;
+    WinNetServer.sin_family = AF_INET;
+    WinNetServer.sin_addr.s_addr = inet_addr("127.0.0.1");
+    WinNetServer.sin_port = htons((short)9999);
+    WinNetMessage = new Message;
+    WinNetTime = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
 }
 

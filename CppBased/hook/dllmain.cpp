@@ -21,23 +21,19 @@ void __stdcall NativeInjectionEntryPoint(REMOTE_ENTRY_INFO* inRemoteInfo)
 		PLOGD << "WSA Init" << endl;
 
 	MyFileApi::SetLv(Debug);
-	//MyProcessApi::SetLv(Debug);
-	//MyWinNetApi::SetLv(Debug);
-	//MyRegApi::SetLv(Debug);
+	MyProcessApi::SetLv(Debug);
+	MyWinNetApi::SetLv(Debug);
+	MyRegApi::SetLv(Debug);
 	MyFileApi::InitFileApi64();
-	//MyProcessApi::InitProcessApi64();
-	//MyRegApi::InitRegApi();
-	//MyWinNetApi::InitWinNetApi();
-	//InitFileApi64();
-	//InitProcessApi64();
-	//InitWinNetApi64();
-	//InitRegApi();
+	MyProcessApi::InitProcessApi64();
+	MyRegApi::InitRegApi();
+	MyWinNetApi::InitWinNetApi();
 	//ServiceApi.MyServiceApiInit();
 	// If the threadId in the ACL is set to 0,
 	// then internally EasyHook uses GetCurrentThreadId()
 
 	// Disable the hook for the provided threadIds, enable for all others
-	MyFileApi::WProcName = GetProcessNameByHandle(GetCurrentProcess());
+	WProcName = GetProcessNameByHandle(GetCurrentProcess());
 	ProcName = std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(GetProcessNameByHandle(GetCurrentProcess()));
 	RhWakeUpProcess();
 	return;
@@ -54,8 +50,13 @@ BOOL WINAPI DllMain(
 	{
 	case DLL_PROCESS_DETACH:
 		MyFileApi::UdpSend();
+		MyProcessApi::UdpSend();
+		MyRegApi::UdpSend();
 		DeleteCriticalSection(&MyFileApi::CriticalLock);
 		delete MyFileApi::FileMessage;
+		delete MyProcessApi::ProcessMessage;
+		delete MyRegApi::RegMessage;
+		delete MyWinNetApi::WinNetMessage;
 		WSACleanup();
 	}
 	return true;
