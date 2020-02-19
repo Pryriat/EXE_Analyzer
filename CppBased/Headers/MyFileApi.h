@@ -307,17 +307,17 @@ BOOL WINAPI MyFileApi::MyReadFile(
 	}
 	else
 		c = FileMap[hFile];
-	if (c.find(L"my.log") == c.npos && c.find(L"MountPointManager") == c.npos)\
+	if (c.find(L"my.log") == c.npos && c.find(L"MountPointManager") == c.npos)
 	{
-		if (Lv > Critial)
+		if (Lv > Critial )
 		{
 			
 			PLOGD << "ReadFile->FileName:" << c
-				<< ", NumberOfBytesRead:" << *lpNumberOfBytesRead
+				<< ", NumberOfBytesRead:" << (lpNumberOfBytesRead != NULL ? *lpNumberOfBytesRead : 0)
 				<< ", Status:" << rtn << std::endl;
 			//EnterCriticalSection(&CriticalLock);
 			Buffer << "ReadFile->FileName:" << c
-				<< ", NumberOfBytesRead:" << *lpNumberOfBytesRead
+				<< ", NumberOfBytesRead:" << (lpNumberOfBytesRead != NULL ? *lpNumberOfBytesRead : 0)
 				<< ", Status:" << rtn << L"\n";
 			UdpSend();
 			//LeaveCriticalSection(&CriticalLock);

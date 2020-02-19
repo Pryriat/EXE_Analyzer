@@ -28,6 +28,7 @@ void __stdcall NativeInjectionEntryPoint(REMOTE_ENTRY_INFO* inRemoteInfo)
 	MyProcessApi::InitProcessApi64();
 	MyRegApi::InitRegApi();
 	MyWinNetApi::InitWinNetApi();
+	//Sleep(10000);
 	//ServiceApi.MyServiceApiInit();
 	// If the threadId in the ACL is set to 0,
 	// then internally EasyHook uses GetCurrentThreadId()
@@ -52,7 +53,8 @@ BOOL WINAPI DllMain(
 		MyFileApi::UdpSend();
 		MyProcessApi::UdpSend();
 		MyRegApi::UdpSend();
-		DeleteCriticalSection(&MyFileApi::CriticalLock);
+		MyWinNetApi::UdpSend();
+		//DeleteCriticalSection(&MyFileApi::CriticalLock);
 		delete MyFileApi::FileMessage;
 		delete MyProcessApi::ProcessMessage;
 		delete MyRegApi::RegMessage;
