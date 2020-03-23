@@ -159,7 +159,7 @@ BOOL WINAPI MyProcessApi::MyCreateProcessA(
             << ", Status:" << rtn << endl;
     if (rtn)
     {
-        NTSTATUS nt = RhInjectLibrary(lpProcessInformation->dwProcessId, 0, EASYHOOK_INJECT_DEFAULT, const_cast<WCHAR*>(L".\\Debug\\hook.dll"), const_cast<WCHAR*>(L".\\x64\\Debug\\hook.dll"), NULL, 0);
+        NTSTATUS nt = RhInjectLibrary(lpProcessInformation->dwProcessId, 0, EASYHOOK_INJECT_DEFAULT, const_cast<WCHAR*>(dllpath_32.c_str()), const_cast<WCHAR*>(dllpath_64.c_str()), &Init, sizeof(Inf));
         if (ERROR(nt))
             PLOGD << RtlGetLastErrorString() << endl;
         else
@@ -192,7 +192,7 @@ BOOL WINAPI MyProcessApi::MyCreateProcessW(
 
     if (rtn)
     {
-        NTSTATUS nt = RhInjectLibrary(lpProcessInformation->dwProcessId, 0, EASYHOOK_INJECT_DEFAULT, const_cast<WCHAR*>(L".\\Debug\\hook.dll"), const_cast<WCHAR*>(L".\\x64\\Debug\\hook.dll"), NULL, 0);
+        NTSTATUS nt = RhInjectLibrary(lpProcessInformation->dwProcessId, 0, EASYHOOK_INJECT_DEFAULT, const_cast<WCHAR*>(dllpath_32.c_str()), const_cast<WCHAR*>(dllpath_64.c_str()), &Init, sizeof(Inf));
         if (Lv > None)
             PLOGD << "CreateProcessW->AppName:" << sc(lpApplicationName)
                 << ", Commandline:" << sc(lpCommandLine)

@@ -24,13 +24,15 @@ typedef struct InitInfo
 	bool RegApiEnabled;
 	bool WinNetApiEnabled;
 	bool ExtraEnabled;
-	const char ServerAddr[20];
+	char ServerAddr[20];
 	USHORT port;
 	Level level;
 	bool is_64;
+	char dllpath_32[300];
+	char dllpath_64[300];
 }Inf, * PInf;
 
-Inf test = { true, true, true, true, true, "127.0.0.1", 9999, Debug ,true};
+Inf test = { true, true, true, true, true, "127.0.0.1", 9999, Debug ,false, ".\\Debug\\hook.dll" ,".\\x64\\Debug\\hook.dll" };
 
 int wmain(int argc, wchar_t** argv)
 {
@@ -41,8 +43,8 @@ int wmain(int argc, wchar_t** argv)
 	//std::wcout << dllToInject32;
 	ULONG proc;
 	int level = 1;
-	//NTSTATUS nt = RhCreateAndInject(argv[1], const_cast<WCHAR*>(L""), CREATE_NEW_CONSOLE, EASYHOOK_INJECT_DEFAULT, dllToInject32, dllToInject, &test, sizeof(Inf), &proc);
-	NTSTATUS nt = RhCreateAndInject(const_cast<WCHAR*>(L"C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE"), const_cast<WCHAR*>(L""), CREATE_NEW_CONSOLE, EASYHOOK_INJECT_DEFAULT, dllToInject32, dllToInject, &test, sizeof(Inf), &proc);
+	NTSTATUS nt = RhCreateAndInject(argv[1], const_cast<WCHAR*>(L""), CREATE_NEW_CONSOLE, EASYHOOK_INJECT_DEFAULT, dllToInject32, dllToInject, &test, sizeof(Inf), &proc);
+	//NTSTATUS nt = RhCreateAndInject(const_cast<WCHAR*>(L"C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE"), const_cast<WCHAR*>(L""), CREATE_NEW_CONSOLE, EASYHOOK_INJECT_DEFAULT, dllToInject32, dllToInject, &test, sizeof(Inf), &proc);
 	//NTSTATUS nt = RhCreateAndInject(const_cast<WCHAR*>(L"D:\\Program Files\\Typora\\Typora.exe"), const_cast<WCHAR*>(L""), CREATE_NEW_CONSOLE, EASYHOOK_INJECT_DEFAULT, dllToInject32, dllToInject, &test, sizeof(Inf), &proc);
 	if (nt != 0)
 	{

@@ -27,6 +27,9 @@
 using std::wstringstream;
 std::string ProcName;
 std::wstring WProcName;
+std::wstring dllpath_32;
+std::wstring dllpath_64;
+
 bool UdpEnable = true;
 enum Level
 {
@@ -60,13 +63,15 @@ typedef struct InitInfo
 	bool RegApiEnabled;
 	bool WinNetApiEnabled;
 	bool ExtraEnabled;
-	const char ServerAddr[20];
+	char ServerAddr[20];
 	USHORT port;
 	Level level;
 	bool is_64;
+	char dllpath_32[300];
+	char dllpath_64[300];
 }Inf, *PInf;
 
-
+Inf Init;
 std::string cn = "None";
 std::wstring wn = L"None";
 

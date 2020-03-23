@@ -33,10 +33,17 @@ void __stdcall NativeInjectionEntryPoint(REMOTE_ENTRY_INFO* inRemoteInfo)
 	}
 	else
 	{
+		memcpy((void*)&Init, (void*)inRemoteInfo->UserData, inRemoteInfo->UserDataSize);
 		PInf t = reinterpret_cast<PInf>(inRemoteInfo->UserData);
 		NTSTATUS nt = RhIsX64Process(inRemoteInfo->HostPID, &tmp);
+		dllpath_32 = std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(t->dllpath_32);
+		dllpath_64 = std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(t->dllpath_64);
 		PLOGD << t->FileApiEnabled << " " << t->ProcessApiEnabled << " " << t->RegApiEnabled << " "
-			<< t->WinNetApiEnabled << " " << t->ServerAddr << " " << t->port << " " << t->level << " " << t->is_64 << "\n";
+			<< t->WinNetApiEnabled << " " << t->ServerAddr << " " << t->port << " " << t->level << " " << t->is_64 << "\n"
+			<<dllpath_32<<"\n"<<dllpath_64<<"\n";
+		PLOGD << Init.FileApiEnabled << " " << Init.ProcessApiEnabled << " " << Init.RegApiEnabled << " "
+			<< Init.WinNetApiEnabled << " " << Init.ServerAddr << " " << Init.port << " " << Init.level << " " << Init.is_64 << "\n"
+			<< Init.dllpath_32 << "\n" << Init.dllpath_64 << "\n";
 		if (nt)
 		{
 			PLOGE << "Defalut dected failed!\n";
@@ -52,6 +59,7 @@ void __stdcall NativeInjectionEntryPoint(REMOTE_ENTRY_INFO* inRemoteInfo)
 		if (t->RegApiEnabled)
 			MyRegApi::SetLv(t->level);
 		ServerAddr = t->ServerAddr;
+		port = t->port;
 		PLOGD << "Level:" << t->level;
 		
 		if (tmp)
