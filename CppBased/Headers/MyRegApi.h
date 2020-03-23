@@ -934,25 +934,30 @@ LSTATUS WINAPI MyRegApi::MyRegSetValueExW(
 
 inline void MyRegApi::UdpSend()
 {
-    const std::wstring& ws = RegBuffer.str();
-    if (ws.size() == 0)
-        return;
-    else if (ws.size() < 30000 && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - RegTime).count() < 500)
-        return;
-    else if (WProcName.size() > 500 || ws.size() > 50000)
-        PLOGE << "Data too long\n";
-    else
+    if (UdpEnable)
     {
-        memset(RegMessage, 0, sizeof(Message));
-        RegMessage->type = 2;
-        memcpy(RegMessage->Processname, WC.to_bytes(WProcName).c_str(), WProcName.size());
-        memcpy(RegMessage->Data, WC.to_bytes(ws).c_str(), ws.size());
-        if (sendto(RegSocket, (char*)RegMessage, sizeof(Message), 0, (SOCKADDR*)&RegServer, sizeof(SOCKADDR)) == SOCKET_ERROR)
-            PLOGE << RtlGetLastErrorString() << std::endl;
+        const std::wstring& ws = RegBuffer.str();
+        if (ws.size() == 0)
+            return;
+        else if (ws.size() < 30000 && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - RegTime).count() < 500)
+            return;
+        else if (WProcName.size() > 500 || ws.size() > 50000)
+            PLOGE << "Data too long\n";
         else
-            RegBuffer.str(L"");
-        RegTime = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
+        {
+            memset(RegMessage, 0, sizeof(Message));
+            RegMessage->type = 2;
+            memcpy(RegMessage->Processname, WC.to_bytes(WProcName).c_str(), WProcName.size());
+            memcpy(RegMessage->Data, WC.to_bytes(ws).c_str(), ws.size());
+            if (sendto(RegSocket, (char*)RegMessage, sizeof(Message), 0, (SOCKADDR*)&RegServer, sizeof(SOCKADDR)) == SOCKET_ERROR)
+                PLOGE << RtlGetLastErrorString() << std::endl;
+            else
+                RegBuffer.str(L"");
+            RegTime = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
+        }
     }
+    else
+        RegBuffer.str(L"");
     return;
 }
 
@@ -1018,8 +1023,8 @@ void MyRegApi::InitRegApi()
     if (SOCKET_ERROR == (RegSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)))
         PLOGE << "Init socket error" << endl;
     RegServer.sin_family = AF_INET;
-    RegServer.sin_addr.s_addr = inet_addr("127.0.0.1");
-    RegServer.sin_port = htons((short)9999);
+    RegServer.sin_addr.s_addr = inet_addr(ServerAddr.c_str());
+    RegServer.sin_port = htons(port);
     RegMessage = new Message;
     RegTime = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
 }

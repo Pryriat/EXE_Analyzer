@@ -607,25 +607,30 @@ BOOL WINAPI MyFileApi::MyMoveFileExW(
 }
 inline void MyFileApi::UdpSend()
 {
-	const std::wstring& ws = Buffer.str();
-	if (ws.size() == 0)
-		return;
-	else if (ws.size() < 38400 && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - FileTime).count() < 500)
-		return;
-	else if (WProcName.size() > 500 || ws.size() > 50000)
-		PLOGE << "Data too long\n";
-	else
+	if (UdpEnable)
 	{
-		memset(FileMessage, 0, sizeof(Message));
-		FileMessage->type = 0;
-		memcpy(FileMessage->Processname, WC.to_bytes(WProcName).c_str(), WProcName.size());
-		memcpy(FileMessage->Data, WC.to_bytes(ws).c_str(), ws.size());
-		if (sendto(FileSocket, (char*)FileMessage, sizeof(Message), 0, (SOCKADDR*)&FileServer, sizeof(SOCKADDR)) == SOCKET_ERROR)
-			PLOGE << RtlGetLastErrorString() << std::endl;
+		const std::wstring& ws = Buffer.str();
+		if (ws.size() == 0)
+			return;
+		else if (ws.size() < 38400 && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - FileTime).count() < 500)
+			return;
+		else if (WProcName.size() > 500 || ws.size() > 50000)
+			PLOGE << "Data too long\n";
 		else
-			Buffer.str(L"");
-		FileTime = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
+		{
+			memset(FileMessage, 0, sizeof(Message));
+			FileMessage->type = 0;
+			memcpy(FileMessage->Processname, WC.to_bytes(WProcName).c_str(), WProcName.size());
+			memcpy(FileMessage->Data, WC.to_bytes(ws).c_str(), ws.size());
+			if (sendto(FileSocket, (char*)FileMessage, sizeof(Message), 0, (SOCKADDR*)&FileServer, sizeof(SOCKADDR)) == SOCKET_ERROR)
+				PLOGE << RtlGetLastErrorString() << std::endl;
+			else
+				Buffer.str(L"");
+			FileTime = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
+		}
 	}
+	else
+		Buffer.str(L"");
 	return;
 }
 
@@ -665,10 +670,10 @@ inline void MyFileApi::InitFileApi64()
 	if (SOCKET_ERROR == (MyFileApi::FileSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)))
 		PLOGE << "Init socket error" << endl;
 	MyFileApi::FileServer.sin_family = AF_INET;
-	MyFileApi::FileServer.sin_addr.s_addr = inet_addr("127.0.0.1");
-	MyFileApi::FileServer.sin_port = htons((short)9999);
+	MyFileApi::FileServer.sin_addr.s_addr = inet_addr(ServerAddr.c_str());
+	MyFileApi::FileServer.sin_port = htons(port);
 	MyFileApi::FileMessage = new Message;
-
+	FileTime = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
 	InitializeCriticalSection(&CriticalLock);
 }
 
@@ -701,4 +706,14 @@ inline void MyFileApi::InitFileApi32()
 	Check("MoveFileW", LhSetExclusiveACL(ACLEntries, 1, &MyFileApi::MoveFileWHook));
 	Check("MoveFileExA", LhSetExclusiveACL(ACLEntries, 1, &MyFileApi::MoveFileExAHook));
 	Check("MoveFileExW", LhSetExclusiveACL(ACLEntries, 1, &MyFileApi::MoveFileExWHook));
+
+	if (SOCKET_ERROR == (MyFileApi::FileSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)))
+		PLOGE << "Init socket error" << endl;
+	MyFileApi::FileServer.sin_family = AF_INET;
+	MyFileApi::FileServer.sin_addr.s_addr = inet_addr(ServerAddr.c_str());
+	MyFileApi::FileServer.sin_port = htons(port);
+	MyFileApi::FileMessage = new Message;
+	FileTime = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
+	InitializeCriticalSection(&CriticalLock);
+
 }

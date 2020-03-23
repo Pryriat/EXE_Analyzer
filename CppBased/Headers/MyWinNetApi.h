@@ -880,25 +880,30 @@ BOOL WINAPI MyWinNetApi::MyHttpSendRequestExW(
 
 void MyWinNetApi::UdpSend()
 {
-    const std::wstring& ws = WinNetBuffer.str();
-    if (ws.size() == 0)
-        return;
-    else if (ws.size() < 30000 && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - WinNetTime).count() < 500)
-        return;
-    else if (WProcName.size() > 500 || ws.size() > 50000)
-        PLOGE << "Data too long\n";
-    else
+    if (UdpEnable)
     {
-        memset(WinNetMessage, 0, sizeof(Message));
-        WinNetMessage->type = 3;
-        memcpy(WinNetMessage->Processname, WC.to_bytes(WProcName).c_str(), WProcName.size());
-        memcpy(WinNetMessage->Data, WC.to_bytes(ws).c_str(), ws.size());
-        if (sendto(WinNetSocket, (char*)WinNetMessage, sizeof(Message), 0, (SOCKADDR*)&WinNetServer, sizeof(SOCKADDR)) == SOCKET_ERROR)
-            PLOGE << RtlGetLastErrorString() << std::endl;
+        const std::wstring& ws = WinNetBuffer.str();
+        if (ws.size() == 0)
+            return;
+        else if (ws.size() < 30000 && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - WinNetTime).count() < 500)
+            return;
+        else if (WProcName.size() > 500 || ws.size() > 50000)
+            PLOGE << "Data too long\n";
         else
-            WinNetBuffer.str(L"");
-        WinNetTime = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
+        {
+            memset(WinNetMessage, 0, sizeof(Message));
+            WinNetMessage->type = 3;
+            memcpy(WinNetMessage->Processname, WC.to_bytes(WProcName).c_str(), WProcName.size());
+            memcpy(WinNetMessage->Data, WC.to_bytes(ws).c_str(), ws.size());
+            if (sendto(WinNetSocket, (char*)WinNetMessage, sizeof(Message), 0, (SOCKADDR*)&WinNetServer, sizeof(SOCKADDR)) == SOCKET_ERROR)
+                PLOGE << RtlGetLastErrorString() << std::endl;
+            else
+                WinNetBuffer.str(L"");
+            WinNetTime = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
+        }
     }
+    else
+        WinNetBuffer.str(L"");
     return;
 }
 void MyWinNetApi::InitWinNetApi()
@@ -941,8 +946,8 @@ void MyWinNetApi::InitWinNetApi()
     if (SOCKET_ERROR == (WinNetSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)))
         PLOGE << "Init socket error" << endl;
     WinNetServer.sin_family = AF_INET;
-    WinNetServer.sin_addr.s_addr = inet_addr("127.0.0.1");
-    WinNetServer.sin_port = htons((short)9999);
+    WinNetServer.sin_addr.s_addr = inet_addr(ServerAddr.c_str());
+    WinNetServer.sin_port = htons(port);
     WinNetMessage = new Message;
     WinNetTime = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
 }

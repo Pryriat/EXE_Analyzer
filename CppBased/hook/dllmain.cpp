@@ -13,23 +13,63 @@ extern "C" void __declspec(dllexport) __stdcall NativeInjectionEntryPoint(REMOTE
 void __stdcall NativeInjectionEntryPoint(REMOTE_ENTRY_INFO* inRemoteInfo)
 {
 	std::string log_file = getenv("USERPROFILE");
+	BOOL tmp;
 	log_file += "\\Desktop\\my.log";
 	plog::init(plog::debug, log_file.c_str());
 	if (::WSAStartup(socketVersion, &WSA) != 0)
 		PLOGE << "Init socket dll error\n";
 	else
 		PLOGD << "WSA Init" << endl;
-
-	MyFileApi::SetLv(Debug);
-	MyProcessApi::SetLv(Debug);
-	MyWinNetApi::SetLv(Debug);
-	MyRegApi::SetLv(Debug);
-	MyFileApi::InitFileApi64();
-	MyProcessApi::InitProcessApi64();
-	MyRegApi::InitRegApi();
-	MyWinNetApi::InitWinNetApi();
 	//Sleep(10000);
-	//ServiceApi.MyServiceApiInit();
+	PLOGE << ServerAddr;
+	if (inRemoteInfo->UserDataSize == 0)
+	{
+		MyFileApi::SetLv(Critial);
+		MyProcessApi::SetLv(Critial);
+		MyWinNetApi::SetLv(Critial);
+		MyRegApi::SetLv(Critial);
+		UdpEnable = false;
+		PLOGE << "InData None!\n";
+	}
+	else
+	{
+		PInf t = reinterpret_cast<PInf>(inRemoteInfo->UserData);
+		NTSTATUS nt = RhIsX64Process(inRemoteInfo->HostPID, &tmp);
+		PLOGD << t->FileApiEnabled << " " << t->ProcessApiEnabled << " " << t->RegApiEnabled << " "
+			<< t->WinNetApiEnabled << " " << t->ServerAddr << " " << t->port << " " << t->level << " " << t->is_64 << "\n";
+		if (nt)
+		{
+			PLOGE << "Defalut dected failed!\n";
+			PLOGE << RtlGetLastErrorString()<<"\n";
+			tmp = t->is_64;
+		}
+		if(t->FileApiEnabled)
+			MyFileApi::SetLv(t->level);
+		if(t->ProcessApiEnabled)
+			MyProcessApi::SetLv(t->level);
+		if(t->WinNetApiEnabled)
+			MyWinNetApi::SetLv(t->level);
+		if (t->RegApiEnabled)
+			MyRegApi::SetLv(t->level);
+		ServerAddr = t->ServerAddr;
+		PLOGD << "Level:" << t->level;
+		
+		if (tmp)
+		{
+			MyFileApi::InitFileApi32();
+			MyProcessApi::InitProcessApi32();
+			MyRegApi::InitRegApi();
+			MyWinNetApi::InitWinNetApi();
+		}
+		else
+		{
+			MyFileApi::InitFileApi64();
+			MyProcessApi::InitProcessApi64();
+			MyRegApi::InitRegApi();
+			MyWinNetApi::InitWinNetApi();
+		}
+	}
+	//MyServiceApi::MyServiceApiInit();
 	// If the threadId in the ACL is set to 0,
 	// then internally EasyHook uses GetCurrentThreadId()
 

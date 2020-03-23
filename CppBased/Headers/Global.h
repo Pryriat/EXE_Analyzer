@@ -27,6 +27,7 @@
 using std::wstringstream;
 std::string ProcName;
 std::wstring WProcName;
+bool UdpEnable = true;
 enum Level
 {
 	None,
@@ -52,12 +53,27 @@ typedef struct Message
 	char Data[50000];
 }MS, * PMS;
 
+typedef struct InitInfo
+{
+	bool FileApiEnabled;
+	bool ProcessApiEnabled;
+	bool RegApiEnabled;
+	bool WinNetApiEnabled;
+	bool ExtraEnabled;
+	const char ServerAddr[20];
+	USHORT port;
+	Level level;
+	bool is_64;
+}Inf, *PInf;
+
+
 std::string cn = "None";
 std::wstring wn = L"None";
 
 WSADATA WSA;
 WORD socketVersion = MAKEWORD(2, 2);
-
+std::string ServerAddr;
+USHORT port = 0;
 
 std::wstring inline GetLastErrorAsString(DWORD ErrorCode)
 {

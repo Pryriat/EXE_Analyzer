@@ -378,25 +378,31 @@ BOOL WINAPI MyProcessApi::MyTerminateThread(HANDLE hThread, DWORD dwExitCode)
 
 inline void MyProcessApi::UdpSend()
 {
-    const std::wstring& ws = ProcessBuffer.str();
-    if (ws.size() == 0)
-        return;
-    else if(ws.size()<30000 && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - ProcessTime).count()<500)
-        return;
-    else if (WProcName.size() > 500 || ws.size() > 50000)
-        PLOGE << "Data too long\n";
-    else
+    if (UdpEnable)
     {
-        memset(ProcessMessage, 0, sizeof(Message));
-        ProcessMessage->type = 1;
-        memcpy(ProcessMessage->Processname, WC.to_bytes(WProcName).c_str(), WProcName.size());
-        memcpy(ProcessMessage->Data, WC.to_bytes(ws).c_str(), ws.size());
-        if (sendto(ProcessSocket, (char*)ProcessMessage, sizeof(Message), 0, (SOCKADDR*)&ProcessServer, sizeof(SOCKADDR)) == SOCKET_ERROR)
-            PLOGE << RtlGetLastErrorString() << std::endl;
+        const std::wstring& ws = ProcessBuffer.str();
+        if (ws.size() == 0)
+            return;
+        else if (ws.size() < 30000 && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - ProcessTime).count() < 500)
+            return;
+        else if (WProcName.size() > 500 || ws.size() > 50000)
+            PLOGE << "Data too long\n";
         else
-            ProcessBuffer.str(L"");
-        ProcessTime = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
+        {
+            memset(ProcessMessage, 0, sizeof(Message));
+            ProcessMessage->type = 1;
+            memcpy(ProcessMessage->Processname, WC.to_bytes(WProcName).c_str(), WProcName.size());
+            memcpy(ProcessMessage->Data, WC.to_bytes(ws).c_str(), ws.size());
+            if (sendto(ProcessSocket, (char*)ProcessMessage, sizeof(Message), 0, (SOCKADDR*)&ProcessServer, sizeof(SOCKADDR)) == SOCKET_ERROR)
+                PLOGE << RtlGetLastErrorString() << std::endl;
+            else
+                ProcessBuffer.str(L"");
+            ProcessTime = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
+        }
+    
     }
+    else
+        ProcessBuffer.str(L"");
     return;
 }
 
@@ -424,8 +430,8 @@ inline void MyProcessApi::InitProcessApi64()
     if (SOCKET_ERROR == (ProcessSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)))
         PLOGE << "Init socket error" << endl;
     ProcessServer.sin_family = AF_INET;
-    ProcessServer.sin_addr.s_addr = inet_addr("127.0.0.1");
-    ProcessServer.sin_port = htons((short)9999);
+    ProcessServer.sin_addr.s_addr = inet_addr(ServerAddr.c_str());
+    ProcessServer.sin_port = htons(port);
     ProcessMessage = new Message;
     ProcessTime = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
 }
@@ -450,6 +456,14 @@ inline void MyProcessApi::InitProcessApi32()
     Check("OpenProcess", LhSetExclusiveACL(ACLEntries, 1, &MyProcessApi::OpenProcessHook));
     Check("TerminateProcess", LhSetExclusiveACL(ACLEntries, 1, &MyProcessApi::TerminateProcessHook));
     Check("TerminateThread", LhSetExclusiveACL(ACLEntries, 1, &MyProcessApi::TerminateThreadHook));
+
+    if (SOCKET_ERROR == (ProcessSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)))
+        PLOGE << "Init socket error" << endl;
+    ProcessServer.sin_family = AF_INET;
+    ProcessServer.sin_addr.s_addr = inet_addr(ServerAddr.c_str());
+    ProcessServer.sin_port = htons(port);
+    ProcessMessage = new Message;
+    ProcessTime = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
 }
 
 
