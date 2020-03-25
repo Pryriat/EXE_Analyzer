@@ -248,8 +248,19 @@ HANDLE WINAPI MyFileApi::MyCreateFileA(
 	HANDLE                hTemplateFile
 )
 {
-	std::wstring c = std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(sc(lpFileName));
-	HANDLE rtn = CreateFileA(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+	std::wstring c;
+	HANDLE rtn = 0;
+	try
+	{
+		c = std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(sc(lpFileName));
+	}
+	catch (const std::range_error & oor)
+	{
+		PLOGE << "CreateFileA FileName Range Error!" << sc(lpFileName) << "  "<<oor.what()<<"\n";
+		rtn = CreateFileA(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+		return rtn;
+	}
+	rtn = CreateFileA(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
 	if (rtn && !FILTER_FILE_JUD(c))
 	{
 		FileMap[rtn] = c;
